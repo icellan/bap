@@ -1,1 +1,257 @@
-# bap
+# Bitcoin Attestation Protocol - BAP
+> A simple protocol to create a chain of trust for any kind of information on the Bitcoin blockchain
+
+Authors: Siggi
+
+Special thanks to Attila Aros
+
+Inspired by the [AUTHOR IDENTITY Protocol](https://github.com/BitcoinFiles/AUTHOR_IDENTITY_PROTOCOL)
+
+# Intro
+
+The design goals:
+
+1. A simple protocol for generic attestation of data, without the need to publish the data itself
+2. Decouple the signing with an address from the funding source address (ie: does not require any on-chain transactions from the signing identity address)
+
+# Use cases
+
+- Identity system: A user can create multiple self-managed identities, keeping all PII data secure in a wallet or app. The user can get provable verification of identity attributes from trusted authorities, without leaking PII data or keys.
+- Power of attorney: A user can attest to giving a power of attorney to another user with a certain key
+- ...
+
+# Protocol
+
+The protocol is defined using the [Bitcom](https://bitcom.bitdb.network/) convention. The signing is done using the [AUTHOR IDENTITY Protocol](https://github.com/BitcoinFiles/AUTHOR_IDENTITY_PROTOCOL).
+
+- The prefix of the protocol is `1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT`;
+
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+[ATTEST|REVOKE]
+[ARN Attestation Hash]
+[Sequence]
+|
+[AIP protocol address]
+[AIP Signing Algorithm]
+[AIP Signing Address]
+[AIP Signature]
+```
+By default, all fields are signed, so the optional indices of the AIP can be left out.
+
+The `Sequence` is added to the transaction to prevent replay of the transaction in case of a revocation. The transaction from the same signatory, with the highest `Sequence` is the current one.
+
+Example:
+
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+d4bcdd0f437d0d3bc588bb4e861d2e83e26e8bf9566ae541a5d43329213b1b13
+0
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+1Po6MLAPJsSAGyE8sXw3CgWcgxumNGjyqm
+BITCOIN_ECDSA
+G8wW0NOCPFgGSoCtB2DZ+0CrLrh9ywAl0C5hnx78Q+7QNyPYzsFtkt4/TXkzkTwqbOT3Ofb1CYdNUv5a/jviPVA=
+```
+
+## URN - Uniform Resource Names
+The protocol makes use of URN's as a data carrier for the attestation data, as defined by the [w3c](https://www.w3.org/TR/uri-clarification/).
+
+URN's look like:
+
+```
+urn:[namespace identifier]:[...URN]
+```
+
+Examples for use in BAP:
+
+Identity:
+```
+urn:bap:id:[Attribute name]:[Attribute value]:[Secret key]
+
+urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa
+```
+
+Attestations:
+```
+urn:bap:attest:[Attribute hash]:[Owner Address]
+
+urn:bap:attest:42d2396ddfc3dec6acbd96830b844a10b8b2f065e60fbd5238b5267ab086bf4f:1CCWY6EXZwNqbrtW1SXGNFWdwipYT7Ur1Q
+```
+
+The ARN is hashed using sha256 when used in a transaction sent to the blockchain.
+
+# Usage in an identity system (BAP-ID)
+
+An identity is defined as a bitcoin address that has attested identity attributes, verified by one or more authorities. These authorities are outside the scope of this description, but are not governed or controlled.
+
+All identity attributes have the following characteristics:
+
+```
+urn:bap:id:[Attribute name]:[Attribute value]:[Secret key]
+```
+
+Attribute | Description
+--------- | ----------
+Attribute name | The name of the attribute being described
+Attribute value | The value of the attribute being described with the name
+Secret key | A unique random number to make sure the entropy of hashing the urn will not cause collision and not allow for dictionary attacks
+
+A user may want to create multiple identities with a varying degree of details available about that identity. Let's take a couple of examples:
+
+Identity 1 (`1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN`):
+```
+urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa
+urn:bap:id:birthday:1990-05-22:e61f23cbbb2284842d77965e2b0e32f0ca890b1894ca4ce652831347ee3596d9
+urn:bap:id:over18:1:480ca17ccaacd671b28dc811332525f2f2cd594d8e8e7825de515ce5d52d30e8
+urn:bap:id:address:51391 Moorpark Ave #104, San Jose, CA 95129, United States:44d47d2375c8346c7ceeab1904360aaf572b1c940c1bd66ffd5cf88fdf06bc05
+urn:bap:id:passportNr:US2343242:9c06a0fb0e2d9cef4928855076255e4df3375e2807cf37bc028ddb282f811ac8
+urn:bap:id:passportExpiration:2022-02-23:d61a39afb463b42c3e419463a028deb3e9e2cebf67953864e9f9e7869677e7cb
+```
+
+Identity 2 (`17PHR4Bv8Xjha2hCmVFnjkC6BZhNeNf9zj`):
+```
+urn:bap:id:name:John Doe:6637be9df2e114ce19a287ff48841899ef4a5762a5f9dc47aef62fe4f579bf93
+urn:bap:id:email:john.doen@example.com:2864fd138ab1e9ddaaea763c77a45898dac64a26229f9f3d0f2280e4bfa915de
+urn:bap:id:over18:1:5f48f9be1644834933cec74a299d109d18f01e77c9552545d2eae4d0c929000b
+```
+
+Identity 3 (`1Ed3ZsWzer6HifP7debgHF4rKQueKDKDwH`):
+```
+urn:bap:id:nickname:Johnny:7a8d693bce6b6c1cf1dd81468a52b69829e465ff9b0762cf77965309df3ad4c8
+```
+
+NOTE: The random secret key should not be re-used across identities. Always create a new random secret for each attribute.
+
+## Attesting an identity
+
+Anyone can attest an identity by broadcasting a bitcoin transaction with a signature from their private key of the attributes of the identity.
+
+All attestations have the following characteristics:
+
+```
+urn:bap:attest:[Attribute hash]:[Owner Address]
+```
+
+Attribute | Description
+--------- | ----------
+Attribute hash | A hash of the urn attribute being attested
+Owner address | The bitcoin address of the owner of the attestation 
+
+Take for example a bank, Banco De Bitcoin, with a known and trusted address of `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`. To attest that the bank has seen the information in the identity attribute and that it is correct, the bank would sign an attestation with the identity information together with the given identity address.
+
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+[Attestation hash]
+[Sequence]
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+[Address of signer]
+[Signature algorithm]
+[Signature]
+```
+ 
+For the name urn for the Identity 1 (`1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN`) in above example:
+
+- We take the hash of `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` = `b5a838d80010369c2cd9db0174168441ebefe707f19f26a139998b8d7f3efb9e`
+- Then create an attestation urn for the address: `urn:bap:id:attest:b5a838d80010369c2cd9db0174168441ebefe707f19f26a139998b8d7f3efb9e:1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN`
+- Then hash the attestation for our transaction: `f0ea69b1e74a53c2afc991cebea02cda47e5acc383d865a6a242dd3545dd351b`
+- Then the attestation is signed with the private key belonging to the trusted authority (with address `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`); 
+
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+f0ea69b1e74a53c2afc991cebea02cda47e5acc383d865a6a242dd3545dd351b
+0
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo
+BITCOIN_ECDSA
+HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
+```
+
+Since the hash of our attestation is always the same, any authority attesting the identity attribute will broadcast a transaction where the 3rd item is the same. In this way it is possible to search (using for instance Planaria) through the blockchain for all attestations of the identity attribute and select the one most trusted.
+
+## Verifying an identity attribute
+
+For a user to prove their identity, that has been verified by a trusted authority, the user does the following.
+
+He shares his identity address `1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN`, the full urn `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` and signs a challenge message from the party that request an identity verification.
+
+The receiving party can now verify:
+- That the user is indeed the owner of the address `1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN` by verifying the signature
+- That the attestation urn has been signed by Banco De Bitcoin.
+- Thereby verifying that the user signing the message has been attested by the bank to have the name `John Doe`.
+
+NOTE: No unneeded sensitive information has been shared and it is not possible to infer any other information from the information sent. The only thing the receiver now knows is that the person doing the signing is called John Doe.
+
+# Using as a Power of Attorney (Work in Progress)
+
+All users that have an identity and an address registered, should be able to, for instance, give another user temporary rights to sign on their behalf. A Power of Attorney could be defined with the BAP protocol in the following way.
+
+The Power of Attorney would have the following characteristics:
+
+```
+urn:bap:poa:[PoA Attribute]:[Address]:[Secret key]
+```
+Attribute | Description
+--------- | ----------
+PoA Attribute | Power of Attorney attribute being handed over to the person with the identity associates with Address
+Address | The bitcoin address of the person (or organisation) being handed the PoA
+Secret key | A unique random number to make sure the entropy of hashing the urn will not cause collision and not allow for dictionary attacks
+
+PoA attributes:
+
+Attribute | Description
+--------- | ----------
+real-estate | To buy, sell, rent, or otherwise manage residential, commercial, and personal real estate
+business | To invest, trade, and manage any and all business transactions and decisions, as well as handle any claim or litigation matters
+finance | To control banking, tax, and government and retirement transactions, as well as living trust and estate decisions
+family | To purchase gifts, employ professionals, and to buy, sell or trade any of your personal property
+general | This grants the authority to make any decisions that you would be able to if you were personally present
+
+Example, give the bank the Power of Attorney over finances:
+
+For the Identity 1 (`1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN`) given PoA to the bank `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`:
+
+- We take the hash of `urn:bap:poa:finance:1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo:ef4ef3b8847cf9533cc044dc032269f80ecf6fcbefbd4d6ac81dddc0124f50e7`
+- Then hash the poa for the transaction: `17b2d0238c6033acc8fa5046682afe2fa479db092cf0d2824c658492182320e5`
+- Then the poa is signed with the private key belonging to the identity handing over the PoA (with address `1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN`); 
+
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+17b2d0238c6033acc8fa5046682afe2fa479db092cf0d2824c658492182320e5
+0
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+1D7gPb9uMG8PJSsZEDKDWkEepKSipRpZEN
+BITCOIN_ECDSA
+HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
+```
+
+The bank will save the urn and can prove that the PoA is still valid on the blockchain.
+
+The user can always revoke the PoA with a REVOKE transaction.
+
+# Revoking an attestation
+
+In rare cases when the attestation needs to be revoked, this can be done using the `REVOKE` keyword. The revocation transaction has exactly the same format as the attestation transaction, except for the REVOKE keyword.
+
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+REVOKE
+f0ea69b1e74a53c2afc991cebea02cda47e5acc383d865a6a242dd3545dd351b
+1
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo
+BITCOIN_ECDSA
+HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
+```
+
+# Extending the protocol
+
+The protocol could be extended for other use cases, by introducing new keywords (next to ATTEST and REVOKE) or introducing other `urn:bap:...` schemes.
