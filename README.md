@@ -196,7 +196,7 @@ Attribute | Description
 Attribute hash | A hash of the urn attribute being attested
 Identity key | The unique identity key of the owner of the attestation 
 
-Take for example a bank, Banco De Bitcoin, with a known and trusted identity key of `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7` which is linked via an `ID` transaction to `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`. To attest that the bank has seen the information in the identity attribute and that it is correct, the bank would sign an attestation with the identity information together with the given identity address.
+Take for example a bank, Banco De Bitcoin, with a known and trusted identity key of `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7` which is linked via an `ID` transaction to `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`. To attest that the bank has seen the information in the identity attribute and that it is correct, the bank would sign an attestation with the identity information together with the given identity key.
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
@@ -235,7 +235,7 @@ Since the hash of our attestation is always the same, any authority attesting th
 
 For a user to prove their identity, that has been verified by a trusted authority, the user does the following.
 
-He shares his identity address `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`, the full urn `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` and signs a challenge message from the party that request an identity verification.
+He shares his identity key `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`, the full urn `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` and signs a challenge message from the party that request an identity verification.
 
 The receiving party can now verify:
 - That the user is the owner of the address `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA` by verifying the signature
