@@ -3,7 +3,7 @@
 
 Authors: Siggi
 
-Special thanks to Attila Aros
+Special thanks to Attila Aros & Satchmo
 
 Inspired by the [AUTHOR IDENTITY Protocol](https://github.com/BitcoinFiles/AUTHOR_IDENTITY_PROTOCOL)
 
@@ -19,7 +19,7 @@ The design goals:
 
 - Identity system: A user can create multiple self-managed identities, keeping all PII data secure in a wallet or app. The user can get provable verification of identity attributes from trusted authorities, without leaking PII data or keys.
 - Power of attorney: A user can attest to giving a power of attorney to another user with a certain key
-- ...
+- Blacklisting
 
 # Protocol
 
@@ -30,7 +30,7 @@ The protocol is defined using the [Bitcom](https://bitcom.bitdb.network/) conven
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 [ID|ATTEST|REVOKE]
-[URN Attestation Hash]
+[ID Key|URN Attestation Hash]
 [Sequence|Address]
 |
 [AIP protocol address]
@@ -194,7 +194,7 @@ urn:bap:attest:[Attribute hash]:[Identity key]
 Attribute | Description
 --------- | ----------
 Attribute hash | A hash of the urn attribute being attested
-Identity key | The unique identity key of the owner of the attestation 
+Identity key | The unique identity key of the owner of the attestation
 
 Take for example a bank, Banco De Bitcoin, with a known and trusted identity key of `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7` which is linked via an `ID` transaction to `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`. To attest that the bank has seen the information in the identity attribute and that it is correct, the bank would sign an attestation with the identity information together with the given identity key.
 
@@ -209,13 +209,13 @@ ATTEST
 [Address of signer]
 [Signature]
 ```
- 
+
 For the name urn for the Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`) in above example:
 
 - We take the hash of `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` = `b17c8e606afcf0d8dca65bdf8f33d275239438116557980203c82b0fae259838`
 - Then create an attestation urn for the address: `urn:bap:id:attest:b17c8e606afcf0d8dca65bdf8f33d275239438116557980203c82b0fae259838:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`
 - Then hash the attestation for our transaction: `5e991865273588e8be0b834b013b7b3b7e4ff2c7517c9fcdf77da84502cebef1`
-- Then the attestation is signed with the private key belonging to the trusted authority (with address `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`); 
+- Then the attestation is signed with the private key belonging to the trusted authority (with address `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`);
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
@@ -278,7 +278,7 @@ For the Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e9
 
 - We take the hash of `urn:bap:poa:finance:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z:ef4ef3b8847cf9533cc044dc032269f80ecf6fcbefbd4d6ac81dddc0124f50e7`
 - Then hash the poa for the transaction: `77cdec21e1025f85a5cb3744d5515c54783c739b8fa7c72c9e24d83900261d7f`
-- Then the poa is signed with the private key belonging to the identity handing over the PoA (with address `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA`); 
+- Then the poa is signed with the private key belonging to the identity handing over the PoA (with address `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA`);
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
@@ -296,6 +296,96 @@ The bank will save the urn and can prove that the PoA is still valid on the bloc
 
 The user can always revoke the PoA with a REVOKE transaction.
 
+# Blacklisting
+
+With more and more data being posted to the bitcoin blockchain it becomes ever more important to be able to block data from being viewed on sites offering that service. Especially illegal data needs to be filtered from viewing to prevent liability claims.
+
+A proposed format for blacklisting any type of data could have the following format:
+```
+urn:bap:blacklist:[type]:[attribute]:[key]
+```
+
+## Blacklisting transactions / addresses
+
+Using the blacklisting format, a transaction ID blacklist would be of the following format for a transaction ID:
+```
+urn:bap:blacklist:bitcoin:tx-id:[Transaction ID]
+```
+
+Example, blacklisting transaction ID `9e4b52ca8abe317d246ae2e742898df0956eaf1cc8df7c02154d20c1f55f3f9b`:
+```
+urn:bap:blacklist:bitcoin:tx-id:9e4b52ca8abe317d246ae2e742898df0956eaf1cc8df7c02154d20c1f55f3f9b
+```
+
+The hash of this blacklisting is: `8a6bc20369171516fb9155a10f11caff8a51dbd8ae90c5bf3443fc4c83bdc8e8` 
+
+The attestation looks like:
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+8a6bc20369171516fb9155a10f11caff8a51dbd8ae90c5bf3443fc4c83bdc8e8
+0
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+BITCOIN_ECDSA
+1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA
+HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
+```
+
+Which would indicate that the ID signing with `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA` is blacklisting the transaction. This way services can blacklist transactions and publish that on-chain for other services to see.
+
+Third party services could be using this to check whether services they trust are blacklisting transactions and based on that decide not to show them in their viewer. A Simple query of the attestastion hash `8a6bc20369171516fb9155a10f11caff8a51dbd8ae90c5bf3443fc4c83bdc8e8` in a BAP index would return all the services that have blacklisted the transaction.
+
+For a bitcoin address, the blacklist urn would look like:
+```
+urn:bap:blacklist:bitcoin:address:[Address]
+```
+Example:
+```
+urn:bap:blacklist:bitcoin:address:1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA
+```
+
+## Blacklisting IP addresses
+
+This blacklisting urn could also be used to signal blacklisting of IP addresses, for instance IP addresses being used by known bot networks.
+
+NOTE: Because IP addresses are personally identifyable information, we need to take more care when hashing these and publishing them on-chain to prevent reverse lookups of the IP addresses.
+
+For IP addresses we could use a concatenation of the idKey of the signing party to add entropy to the hashing:
+```
+urn:bap:blacklist:ip-address:[IP Address]:[ID key]
+```
+
+This would prevent direct lookups and force services to only search for blacklisting by services they trust. A lookup of all attestations and all id's would be an extremly CPU intensive task.
+
+For the Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`) blacklisting IP address `1.1.1.1`:
+```
+urn:bap:blacklist:ip-address:1.1.1.1:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+```
+
+The hash of this blacklisting is: `73df789478993f8f4e100be416811860d6fc2ae208fdfaf256788cd522f21219` 
+
+The attestation looks like:
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+73df789478993f8f4e100be416811860d6fc2ae208fdfaf256788cd522f21219
+0
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+BITCOIN_ECDSA
+1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA
+HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
+```
+
+A third party service that wants to make use of this information is forced to look through a BAP index in a targeted way, per IP address and for each attesting service separately and is not able to recreate a list of blocked IP addresses.
+
+## Final note on blacklisting
+
+Using attestations for blacklists is a good way of creating one-way blacklists. It's easy to lookup whether some service has blacklisted something (transaction, address, IP address), but it is very hard to create a list of all things a service has blacklisted.
+
+Also because the blacklist attestations look just like any other attestation, the blacklistings can not be identified as such which increases the difficulty of creating a list of  blacklistings of a service.
+
 # Revoking an attestation
 
 In rare cases when the attestation needs to be revoked, this can be done using the `REVOKE` keyword. The revocation transaction has exactly the same format as the attestation transaction, except for the REVOKE keyword.
@@ -311,6 +401,8 @@ BITCOIN_ECDSA
 1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA
 HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
 ```
+
+The sequence number is important here to prevent replays of the transaction.
 
 # Extending the protocol
 
