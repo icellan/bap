@@ -349,7 +349,7 @@ urn:bap:blacklist:bitcoin:address:1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA
 
 This blacklisting urn could also be used to signal blacklisting of IP addresses, for instance IP addresses being used by known bot networks.
 
-NOTE: Because IP addresses are personally identifyable information, we need to take more care when hashing these and publishing them on-chain to prevent reverse lookups of the IP addresses.
+NOTE: Because IP addresses are personally identifiable information, we need to take more care when hashing these and publishing them on-chain to prevent reverse lookups of the IP addresses.
 
 For IP addresses we could use a concatenation of the idKey of the signing party to add entropy to the hashing:
 ```
@@ -385,6 +385,38 @@ A third party service that wants to make use of this information is forced to lo
 Using attestations for blacklists is a good way of creating one-way blacklists. It's easy to lookup whether some service has blacklisted something (transaction, address, IP address), but it is very hard to create a list of all things a service has blacklisted.
 
 Also because the blacklist attestations look just like any other attestation, the blacklistings can not be identified as such which increases the difficulty of creating a list of  blacklistings of a service.
+
+# Giving consent to access of data
+
+When a website requests data from a user, the user should leave a record on-chain that this data was freely given to the service by the user. The user should also be able to revoke the access to the data, which would imply that the service needs to delete any copy's of the data shared. This is the only way the user is (legally) in charge of what data the service has access to.
+
+A possible way to do this, using BAP:
+```
+urn:bap:grant:[Attribute hashes]:[Identity key]
+```
+
+Example, for a service with identity key `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7`:
+```
+urn:bap:grant:name,email,nickname:be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7
+```
+This has a hash of `b88bd23005be7e0737f02e67de8b392df834ba27caed1e7774aec77c9dcb85d0`.
+
+The user then needs to attest to this on-chain:
+```
+1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
+ATTEST
+b88bd23005be7e0737f02e67de8b392df834ba27caed1e7774aec77c9dcb85d0
+0
+|
+15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
+BITCOIN_ECDSA
+1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo
+HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
+```
+
+NOTE: this could be given to the service directly as proof of granting access to the data by the user. The service could then put the data on-chain, paying the necessary fees.
+
+The service should be monitoring the blockchain for a revocation of the data sharing grant and remove any data related to this user of the revocation is seen. Alternatively, the user could notify the service of a revocation transaction when made on-chain.
 
 # Revoking an attestation
 
