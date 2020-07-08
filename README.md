@@ -20,6 +20,7 @@ The design goals:
 - Identity system: A user can create multiple self-managed identities, keeping all PII data secure in a wallet or app. The user can get provable verification of identity attributes from trusted authorities, without leaking PII data or keys.
 - Power of attorney: A user can attest to giving a power of attorney to another user with a certain key
 - Blacklisting
+- Granting access to data
 
 # Protocol
 
