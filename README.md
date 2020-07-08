@@ -393,7 +393,7 @@ When a website requests data from a user, the user should leave a record on-chai
 
 A possible way to do this, using BAP:
 ```
-urn:bap:grant:[Attribute hashes]:[Identity key]
+urn:bap:grant:[Attribute names]:[Identity key]
 ```
 
 Example, for a service with identity key `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7`:
