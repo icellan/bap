@@ -1,0 +1,1 @@
+"use strict";var _interopRequireDefault=require("@babel/runtime/helpers/interopRequireDefault");Object.defineProperty(exports,"__esModule",{value:!0}),exports.BAP_POA=void 0;var _classCallCheck2=_interopRequireDefault(require("@babel/runtime/helpers/classCallCheck")),BAP_POA=function a(b){(0,_classCallCheck2["default"])(this,a),this.HDPrivateKey=b};exports.BAP_POA=BAP_POA;

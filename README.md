@@ -98,7 +98,7 @@ Identity:
 ```
 urn:bap:id:[Attribute name]:[Attribute value]:[Nonce]
 
-urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa
+  urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa
 ```
 
 Attestations:
@@ -118,16 +118,43 @@ Especially the Person attributes, found at https://schema.org/Person, should be 
 
 # Creating an identity (ID)
 
-Signing identities in BAP are created by linking a unique identity key with a bitcoin signing address. Identity keys can be any random (!) hex string, but should be at least 64 characters long (256 bits).
+To create a new identity in BAP, we need to create 2 private keys and compute they public keys and the corresponding addresses. For easy management of the keys, it is recommended to use an [HD Private key](https://docs.moneybutton.com/docs/bsv-hd-private-key.html) with known derivations.
 
-Example identity key: `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`;
+```
+rootAddress: 1WffojxvgpQBmUTigoss7VUdfN45JiiRK
+firstAddress: 1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo
+```
 
-To link this identity key to a signing address, an `ID` transaction is sent to the blockchain:
+
+
+Signing identities in BAP are created by linking a unique identity key with bitcoin signing addresses. The identity key should be computed as a hash of the rootAddress. This links the 2 together and prevents others from creating an identity using the same identity key to create confusion.
+
+The identity key follows the way a Bitcoin address is hashed to reduce the size of the key.
+
+```
+identityKey = base58( ripemd160 ( sha256 ( rootAddress ) ) )
+```
+
+Example identity key, note the hex values are fed as binary buffers to the hash functions and not as a string:
+
+```
+sha256(1WffojxvgpQBmUTigoss7VUdfN45JiiRK) = c38bc59316de9783b5f7a8ba19bc5d442f6c9b0988c48a241d1c58a1f4e9ae19
+
+ripemd160(c38bc59316de9783b5f7a8ba19bc5d442f6c9b0988c48a241d1c58a1f4e9ae19) = afb3dcf52c2c661c35c8ec6a92cecbfc691ba371
+
+base58(afb3dcf52c2c661c35c8ec6a92cecbfc691ba371) = 3SyWUZXvhidNcEHbAC3HkBnKoD2Q
+
+identityKey: 3SyWUZXvhidNcEHbAC3HkBnKoD2Q
+```
+
+**NOTE:** This has been changed with the release of the BAP library. This allows a verifier to link the root address to the identity key. In the past the identity key was random. Older identites created at random will still work with the BAP library, but new identities should be created in this way.
+
+To link this identity key to the root address and the signing address, an `ID` transaction is sent to the blockchain:
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 ID
-4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo
 |
 15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
@@ -136,14 +163,14 @@ BITCOIN_ECDSA
 HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
 ```
 
-The address `1WffojxvgpQBmUTigoss7VUdfN45JiiRK` associated with the first instance of the identity key on-chain, is the identity control address. This address should no be used anywhere, but can be used to destroy the identity, in case the latest linked key has been compromised.
+The address `1WffojxvgpQBmUTigoss7VUdfN45JiiRK` associated with the first instance of the identity key on-chain, is the identity control address (or rootAddress). This address should no be used anywhere, but can be used to destroy the identity, in case the latest linked key has been compromised.
 
 When the signing address is rotated to a new key, a new ID transaction is created, this time signed by the previous address:
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 ID
-4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA
 |
 15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
@@ -161,7 +188,7 @@ To destroy the identity, an ID transaction is sent to 0, signed with the address
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 ID
-4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 0
 |
 15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
@@ -188,7 +215,7 @@ Nonce | A unique random string to make sure the entropy of hashing the urn will 
 
 A user may want to create multiple identities with a varying degree of details available about that identity. Let's take a couple of examples:
 
-Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`):
+Identity 1 (`3SyWUZXvhidNcEHbAC3HkBnKoD2Q`):
 ```
 urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa
 urn:bap:id:birthday:1990-05-22:e61f23cbbb2284842d77965e2b0e32f0ca890b1894ca4ce652831347ee3596d9
@@ -227,7 +254,7 @@ Attribute | Description
 Attribute hash | A hash of the urn attribute being attested
 Identity key | The unique identity key of the owner of the attestation
 
-Take for example a bank, Banco De Bitcoin, with a known and trusted identity key of `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7` which is linked via an `ID` transaction to `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`. To attest that the bank has seen the information in the identity attribute and that it is correct, the bank would sign an attestation with the identity information together with the given identity key.
+Take for example a bank, Banco De Bitcoin, with a known and trusted identity key of `ezY2h8B5sj7SHGw8i1KhHtRvgM5` which is linked via an `ID` transaction to `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`. To attest that the bank has seen the information in the identity attribute and that it is correct, the bank would sign an attestation with the identity information together with the given identity key.
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
@@ -241,17 +268,17 @@ ATTEST
 [Signature]
 ```
 
-For the name urn for the Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`) in above example:
+For the name urn for the Identity 1 (`3SyWUZXvhidNcEHbAC3HkBnKoD2Q`) in above example:
 
 - We take the hash of `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` = `b17c8e606afcf0d8dca65bdf8f33d275239438116557980203c82b0fae259838`
-- Then create an attestation urn for the address: `urn:bap:id:attest:b17c8e606afcf0d8dca65bdf8f33d275239438116557980203c82b0fae259838:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`
-- Then hash the attestation for our transaction: `5e991865273588e8be0b834b013b7b3b7e4ff2c7517c9fcdf77da84502cebef1`
+- Then create an attestation urn for the address: `urn:bap:id:attest:b17c8e606afcf0d8dca65bdf8f33d275239438116557980203c82b0fae259838:3SyWUZXvhidNcEHbAC3HkBnKoD2Q`
+- Then hash the attestation for our transaction: `89cd658c0ce3ff62db4270a317c35f8a7dfe1242e2cc94232aa3947d77f82431`
 - Then the attestation is signed with the private key belonging to the trusted authority (with address `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`);
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 ATTEST
-5e991865273588e8be0b834b013b7b3b7e4ff2c7517c9fcdf77da84502cebef1
+89cd658c0ce3ff62db4270a317c35f8a7dfe1242e2cc94232aa3947d77f82431
 0
 |
 15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
@@ -266,11 +293,11 @@ Since the hash of our attestation is always the same, any authority attesting th
 
 For a user to prove their identity, that has been verified by a trusted authority, the user does the following.
 
-He shares his identity key `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`, the full urn `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` and signs a challenge message from the party that request an identity verification.
+He shares his identity key `3SyWUZXvhidNcEHbAC3HkBnKoD2Q`, the full urn `urn:bap:id:name:John Doe:e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa` and signs a challenge message from the party that request an identity verification.
 
 The receiving party can now verify:
 - That the user is the owner of the address `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA` by verifying the signature
-- That the identity `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z` is linked to the address via an `ID` record
+- That the identity `3SyWUZXvhidNcEHbAC3HkBnKoD2Q` is linked to the address via an `ID` record
 - That the attestation urn has been signed by that latest valid address of Banco De Bitcoin.
 - Thereby verifying that the user signing the message has been attested by the bank to have the name `John Doe`.
 
@@ -286,13 +313,13 @@ When for instance a KYC check is done, this check is done for a certain identity
 
 Example:
 ```
-var attestation = 'urn:bap:delegate:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z:341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04:7f2fe5aac07e2d4c43bdb232029ed157acf0272eac94a2f75cc17566c01a5e89';
+var attestation = 'urn:bap:delegate:3SyWUZXvhidNcEHbAC3HkBnKoD2Q:341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04:7f2fe5aac07e2d4c43bdb232029ed157acf0272eac94a2f75cc17566c01a5e89';
 var attestationHash = sha256(attestation); // 2dbb381888f973a0db3bf311e551a6ac2f3ab792420262d8a6f65ef4feb8c1ef
 ```
 
-This links, or delegates, from identity `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z` to identity `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04`;
+This links, or delegates, from identity `3SyWUZXvhidNcEHbAC3HkBnKoD2Q` to identity `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04`;
 
-The attestation can be published to the blockchain, signed by the identity `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`;
+The attestation can be published to the blockchain, signed by the identity `3SyWUZXvhidNcEHbAC3HkBnKoD2Q`;
 
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
@@ -306,13 +333,13 @@ BITCOIN_ECDSA
 HB6Ye7ekxjKDkblJYL9lX3J2vhY75vl+WfVCq+wW3+y6S7XECkgYwUEVH3WEArRuDb/aVZ8ntLI/D0Yolb1dhD8=
 ```
 
-Showing that it is possible to use the verified attributes from `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z` in identity `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04` can now be done by sharing the delegation. The delegation attestation will be available to check on-chain.
+Showing that it is possible to use the verified attributes from `3SyWUZXvhidNcEHbAC3HkBnKoD2Q` in identity `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04` can now be done by sharing the delegation. The delegation attestation will be available to check on-chain.
 
 The challenge sent by the application requesting the attributes should be signed by **both (!)** identites, to proof access to the private keys of both identities.
 
-NOTE: The grant published on-chain for the attributes shared must be signed by the delegating identity `4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`, and not `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04`;
+NOTE: The grant published on-chain for the attributes shared must be signed by the delegating identity `3SyWUZXvhidNcEHbAC3HkBnKoD2Q`, and not `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04`;
 
-NOTE: The receiving end should store both identity keys to be able to proof they have received access to the data of the user. The could be stored as a concatenation of the two identity strings: `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04<-4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`;
+NOTE: The receiving end should store both identity keys to be able to proof they have received access to the data of the user. The could be stored as a concatenation of the two identity strings: `341d782c56a588ccdd3ebb181d1dbb4699bdb5fb9956b7bd07e917d955acdb04<-3SyWUZXvhidNcEHbAC3HkBnKoD2Q`;
 
 NOTE: The main identity, for which a KYC has been done, should never directly be used in any application. A new identity should be created for each and every application accessed.
 
@@ -326,7 +353,7 @@ The ALIAS data is a stringified JSON object that uses the w3c attributes from ht
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 ALIAS
-4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 {"@type":"Organization","name":"Banco De Bitcoin","address":{"@type":"PostalAddress","addressLocality":"Mexico Beach","addressRegion":"FL","streetAddress":"3102 Highway 98"},"url":https://bancodebitcoin.com","logo":{"@type":"ImageObject","contentUrl":"data:image/png;base64,..."}
 |
 15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
@@ -463,9 +490,9 @@ general | This grants the authority to make any decisions that you would be able
 
 Example, give the bank the Power of Attorney over finances:
 
-For the Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`) given PoA to the bank `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7`:
+For the Identity 1 (`3SyWUZXvhidNcEHbAC3HkBnKoD2Q`) given PoA to the bank `ezY2h8B5sj7SHGw8i1KhHtRvgM5`:
 
-- We take the hash of `urn:bap:poa:finance:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z:ef4ef3b8847cf9533cc044dc032269f80ecf6fcbefbd4d6ac81dddc0124f50e7`
+- We take the hash of `urn:bap:poa:finance:3SyWUZXvhidNcEHbAC3HkBnKoD2Q:ef4ef3b8847cf9533cc044dc032269f80ecf6fcbefbd4d6ac81dddc0124f50e7`
 - Then hash the poa for the transaction: `77cdec21e1025f85a5cb3744d5515c54783c739b8fa7c72c9e24d83900261d7f`
 - Then the poa is signed with the private key belonging to the identity handing over the PoA (with address `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA`);
 
@@ -547,9 +574,9 @@ urn:bap:blacklist:ip-address:[IP Address]:[ID key]
 
 This would prevent direct lookups and force services to only search for blacklisting by services they trust. A lookup of all attestations and all id's would be an extremly CPU intensive task.
 
-For the Identity 1 (`4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z`) blacklisting IP address `1.1.1.1`:
+For the Identity 1 (`3SyWUZXvhidNcEHbAC3HkBnKoD2Q`) blacklisting IP address `1.1.1.1`:
 ```
-urn:bap:blacklist:ip-address:1.1.1.1:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+urn:bap:blacklist:ip-address:1.1.1.1:3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 ```
 
 The hash of this blacklisting is: `73df789478993f8f4e100be416811860d6fc2ae208fdfaf256788cd522f21219`
@@ -612,9 +639,9 @@ A possible way to do this, using BAP:
 urn:bap:grant:[Attribute names]:[Identity key]
 ```
 
-Example, for a service with identity key `be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7`:
+Example, for a service with identity key `ezY2h8B5sj7SHGw8i1KhHtRvgM5`:
 ```
-urn:bap:grant:name,email,alternateName:be5dd6cba6f35b0560d9aa85447705f8f22811e6cdc431637b7963876e612cd7
+urn:bap:grant:name,email,alternateName:ezY2h8B5sj7SHGw8i1KhHtRvgM5
 ```
 This has a hash of `b88bd23005be7e0737f02e67de8b392df834ba27caed1e7774aec77c9dcb85d0`.
 
@@ -668,7 +695,7 @@ A transaction like this, creating a new identity with root address `1WffojxvgpQB
 ```
 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT
 ID
-4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 1KJ8vx8adZeznoDfoGf632rNkzxK2ZwzSG
 |
 15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva
@@ -684,7 +711,7 @@ Input:
 <𝑆𝑖𝑔 𝑃𝑝𝑎𝑟𝑒𝑛𝑡> <𝑃𝑝𝑎𝑟𝑒𝑛𝑡>
 
 Output:
-OP_RETURN meta <𝑃𝑛𝑜𝑑𝑒> <𝑇𝑥𝐼𝐷𝑝𝑎𝑟𝑒𝑛𝑡> 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT ID 4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+OP_RETURN meta <𝑃𝑛𝑜𝑑𝑒> <𝑇𝑥𝐼𝐷𝑝𝑎𝑟𝑒𝑛𝑡> 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT ID 3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 ```
 
 Where `Pparent` is the public key associated with the root address `1WffojxvgpQBmUTigoss7VUdfN45JiiRK`, and `Pnode` is the public key associated with the new signing address `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`.
@@ -696,7 +723,7 @@ Input:
 <𝑆𝑖𝑔 𝑃𝑝𝑎𝑟𝑒𝑛𝑡> <𝑃𝑝𝑎𝑟𝑒𝑛𝑡>
 
 Output:
-OP_RETURN meta <𝑃𝑛𝑜𝑑𝑒> <𝑇𝑥𝐼𝐷𝑝𝑎𝑟𝑒𝑛𝑡> 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT ID 4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z
+OP_RETURN meta <𝑃𝑛𝑜𝑑𝑒> <𝑇𝑥𝐼𝐷𝑝𝑎𝑟𝑒𝑛𝑡> 1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT ID 3SyWUZXvhidNcEHbAC3HkBnKoD2Q
 ```
 
 Where `Pparent` is the public key associated with the address `1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo`, and `Pnode` is the public key associated with the new signing address `1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA`.
@@ -737,17 +764,17 @@ Example:
 ```
 {
     "@context": ["https://w3id.org/did/v0.11", "https://w3id.org/bap/v1"],
-    "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+    "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
     "publicKey": [
        {
-            "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z#root",
-            "controller": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+            "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q#root",
+            "controller": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
             "type": "EcdsaSecp256k1VerificationKey2019",
             "bitcoinAddress": "1WffojxvgpQBmUTigoss7VUdfN45JiiRK"
         },
        {
-            "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z#key1",
-            "controller": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+            "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q#key1",
+            "controller": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
             "type": "EcdsaSecp256k1VerificationKey2019",
             "bitcoinAddress": "1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo"
         }
@@ -761,23 +788,23 @@ When keys are rotated to a new signing key the new key can be added to the DID a
 ```
 {
     "@context": ["https://w3id.org/did/v0.11", "https://w3id.org/bap/v1"],
-    "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+    "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
     "publicKey": [
        {
-            "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z#root",
-            "controller": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+            "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q#root",
+            "controller": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
             "type": "EcdsaSecp256k1VerificationKey2019",
             "bitcoinAddress": "1WffojxvgpQBmUTigoss7VUdfN45JiiRK"
         },
        {
-            "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z#key1",
-            "controller": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+            "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q#key1",
+            "controller": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
             "type": "EcdsaSecp256k1VerificationKey2019",
             "bitcoinAddress": "1K4c6YXR1ixNLAqrL8nx5HUQAPKbACTwDo"
         },
        {
-            "id": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z#key2",
-            "controller": "did:bap:id:4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+            "id": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q#key2",
+            "controller": "did:bap:id:3SyWUZXvhidNcEHbAC3HkBnKoD2Q",
             "type": "EcdsaSecp256k1VerificationKey2019",
             "bitcoinAddress": "1JfMQDtBKYi6z65M9uF2gxgLv7E8pPR6MA"
         }

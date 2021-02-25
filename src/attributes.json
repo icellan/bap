@@ -1,0 +1,119 @@
+// https://schema.org/Person
+{
+  "name": {
+    "type": "string",
+    "description": "Full name of user"
+  },
+  "givenName": {
+    "type": "string",
+    "description": "Given name as shown in official documents"
+  },
+  "familyName": {
+    "type": "string",
+    "description": "Family name as shown in official documents"
+  },
+  "alternateName": {
+    "type": "string",
+    "description": "A self chosen nickname"
+  },
+  "gender": {
+    "type": "string",
+    "description": "Male / Female / other / ... - https://schema.org/GenderType"
+  },
+  "birthDate": {
+    "type": "string",
+    "description": "Birthday of the user - YYYY-MM-DD - https://schema.org/Date"
+  },
+  "email": {
+    "type": "string",
+    "description": "Email address of the the user"
+  },
+  "telephone": {
+    "type": "string",
+    "description": "Phone number of the user - international format +14255551212 (https://www.itu.int/rec/T-REC-E.164-201011-I/en)"
+  },
+  "mobile": {
+    "type": "string",
+    "description": "Mobile phone number of the user - international format +14255551212 (https://www.itu.int/rec/T-REC-E.164-201011-I/en) - NOTE, not defined in schema.org"
+  },
+  "address": {
+    "type": "string",
+    "description": "Address of the user - to be verified the address should be the full address as shown on local postage, from authorities - new lines allowed - https://schema.org/address"
+  },
+  "country": {
+    "type": "string",
+    "description": "ISO 3166-1 3-letter country code of the users residence"
+  },
+  "nationality": {
+    "type": "string",
+    "description": "ISO 3166-1 3-letter country code of the users nationality"
+  },
+  "website": {
+    "type": "string",
+    "description": "Website address of the the user - not defined at schema.org"
+  },
+  "avatar": {
+    "type": "string",
+    "description": "URL of the users avatar - can be a base64 URI - not defined at schema.org"
+  },
+  "passportNr": {
+    "type": "string",
+    "description": "Document number of the passport of the user - not defined at schema.org"
+  },
+  "passportExpiration": {
+    "type": "string",
+    "description": "Passport expiration date - YYYY-MM-DD - not defined at schema.org"
+  },
+  "passportCountry": {
+    "type": "string",
+    "description": "ISO 3166-1 3-letter country code of the passport issuer - not defined at schema.org"
+  },
+  "driversLicenseNr": {
+    "type": "string",
+    "description": "Document number of the drivers license of the user - not defined at schema.org"
+  },
+  "driversLicenseExpiration": {
+    "type": "string",
+    "description": "Expiration date of the drivers license of the user - not defined at schema.org"
+  },
+  "driversLicenseCountry": {
+    "type": "string",
+    "description": "ISO 3166-1 3-letter country code of the passport issuer - not defined at schema.org"
+  },
+  "socialSecurityNr": {
+    "type": "string",
+    "description": "Social security number of the user - not defined at schema.org"
+  },
+  "uniKey": {
+    "type": "string",
+    "description": "A hash of all the attributes of a persons passport, to create a deterministic unique id for the user that can be used across identities - not defined at schema.org"
+  },
+  "uniKeyExpirationDate": {
+    "type": "string",
+    "description": "The expiration date of the document used to create the uniKey - the nonce of the uniKeyExpirationDate should be the uniKey hash"
+  },
+  "isHuman": {
+    "type": "number",
+    "description": "Whether this ID is a real human - this can be used to attest this is not a bot - not defined at schema.org"
+  },
+  "over18": {
+    "type": "number",
+    "description": "1 if the user is over 18 - not defined at schema.org"
+  },
+  "over19": {
+    "type": "number",
+    "description": "1 if the user is over 19 - not defined at schema.org"
+  },
+  "over20": {
+    "type": "number",
+    "description": "1 if the user is over 20 - not defined at schema.org"
+  },
+  "over21": {
+    "type": "number",
+    "description": "1 if the user is over 21 - not defined at schema.org"
+  },
+  "over25": {
+    "type": "number",
+    "description": "1 if the user is over 25 - not defined at schema.org"
+  }
+}

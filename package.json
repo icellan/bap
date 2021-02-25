@@ -1,0 +1,62 @@
+{
+  "name": "bap",
+  "version": "1.0.0",
+  "description": "BAP npm module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/icellan/bap.git"
+  },
+  "license": "Open BSV",
+  "precommit": "test",
+  "main": "dist/index.js",
+  "scripts": {
+    "clean": "rimraf dist/",
+    "build": "rimraf dist/ && babel src/ --presets minify --out-dir dist/",
+    "lint": "eslint ./src",
+    "lintfix": "eslint ./src --fix",
+    "testquiet": "./node_modules/.bin/jest --detectOpenHandles --forceExit --silent",
+    "testonly": "./node_modules/.bin/jest --collectCoverage --detectOpenHandles --forceExit",
+    "testwatch": "./node_modules/.bin/jest --watchAll --collectCoverage --logHeapUsage --detectOpenHandles",
+    "test": "npm run lint && npm run testonly",
+    "test-watch": "npm run testwatch",
+    "check": "./node_modules/.bin/npm-check -u",
+    "prepare": "npm run clean && npm run lint && npm run test && npm run build",
+    "pub": "./node_modules/.bin/np || true"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
+    "@babel/plugin-transform-runtime": "^7.12.10",
+    "@babel/polyfill": "^7.12.1",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/register": "^7.12.10",
+    "babel-core": "^7.0.0-bridge.0",
+    "babel-eslint": "^10.1.0",
+    "babel-jest": "^26.6.3",
+    "babel-preset-minify": "^0.5.1",
+    "bsv": "^1.5.4",
+    "eslint": "^7.16.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1",
+    "jest": "^26.6.3",
+    "jest-cli": "^26.6.3",
+    "jest-slow-test-reporter": "^1.0.0",
+    "np": "2.20.1",
+    "npm-check": "5.7.0",
+    "pre-commit": "^1.2.2",
+    "regenerator-runtime": "^0.12.1",
+    "rimraf": "2.6.2",
+    "run-sequence": "2.2.1"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  },
+  "peerDependencies": {
+    "bsv": "^1.5.4"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.(mjs|jsx|js)$": "babel-jest"
+    }
+  }
+}
