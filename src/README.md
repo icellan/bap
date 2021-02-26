@@ -9,6 +9,10 @@ Javascript classes for working with identities and attestations.
 
 The BAP class is a wrapper around all BAP functions, including managing IDs and attestations.
 
+```shell
+npm install bitcoin-bap --save
+```
+
 Example creating a new ID:
 ```javascript
 const HDPrivateKey = 'xprv...';
