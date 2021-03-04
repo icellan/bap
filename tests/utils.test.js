@@ -15,4 +15,12 @@ describe('random', () => {
     const randomString2 = Utils.getRandomString(12);
     expect(randomString2.length).toEqual(24);
   });
+
+  test('getNextPath', () => {
+    expect(Utils.getNextPath('/0/0/1')).toBe('/0/0/2');
+    expect(Utils.getNextPath('/0/2345/1')).toBe('/0/2345/2');
+    expect(Utils.getNextPath('/0\'/2345\'/1\'')).toBe('/0\'/2345\'/2\'');
+    expect(Utils.getNextPath('/5765/2345/2342')).toBe('/5765/2345/2343');
+    expect(Utils.getNextPath('/5765\'/2345\'/2342\'')).toBe('/5765\'/2345\'/2343\'');
+  });
 });

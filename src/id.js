@@ -30,8 +30,18 @@ export const BAP_ID = class {
 
   #currentPath;
 
-  constructor(HDPrivateKey, identityAttributes = {}) {
-    this.#HDPrivateKey = HDPrivateKey;
+  #idSeed;
+
+  constructor(HDPrivateKey, identityAttributes = {}, idSeed = '') {
+    this.#idSeed = idSeed;
+    if (idSeed) {
+      // create a new HDPrivateKey based on the seed
+      const seedHex = bsv.crypto.Hash.sha256(Buffer.from(idSeed)).toString('hex');
+      const seedPath = Utils.getSigningPathFromHex(seedHex);
+      this.#HDPrivateKey = HDPrivateKey.deriveChild(seedPath);
+    } else {
+      this.#HDPrivateKey = HDPrivateKey;
+    }
 
     this.name = 'ID 1';
     this.description = '';
@@ -83,8 +93,8 @@ export const BAP_ID = class {
 
     Object.keys(identityAttributes).forEach((key) => {
       if (
-        !identityAttributes[key].value
-        || !identityAttributes[key].nonce
+        !identityAttributes[key].hasOwnProperty('value')
+        || !identityAttributes[key].hasOwnProperty('nonce')
       ) {
         throw new Error('Invalid identity attribute');
       }
@@ -156,16 +166,30 @@ export const BAP_ID = class {
   /**
    * Set the value of the given attribute
    *
+   * If an empty value ('' || null || false) is given, the attribute is removed from the ID
+   *
    * @param attributeName
    * @param attributeValue
    * @returns {{}|null}
    */
   setAttribute(attributeName, attributeValue) {
-    if (this.identityAttributes.hasOwnProperty(attributeName)) {
-      this.identityAttributes[attributeName].value = attributeValue;
-    } else {
-      this.addAttribute(attributeName, attributeValue);
+    if (attributeValue) {
+      if (this.identityAttributes.hasOwnProperty(attributeName)) {
+        this.identityAttributes[attributeName].value = attributeValue;
+      } else {
+        this.addAttribute(attributeName, attributeValue);
+      }
     }
+  }
+
+  /**
+   * Unset the given attribute from the ID
+   *
+   * @param attributeName
+   * @returns {{}|null}
+   */
+  unsetAttribute(attributeName) {
+    delete this.identityAttributes[attributeName];
   }
 
   /**
@@ -279,30 +303,21 @@ export const BAP_ID = class {
   }
 
   /**
+   * This can be used to break the deterministic way child keys are created to make it harder for
+   * an attacker to steal the identites when the root key is compromised. This does however require
+   * the seeds to be stored at all times. If the seed is lost, the identity will not be recoverable.
+   */
+  get idSeed() {
+    return this.#idSeed;
+  }
+
+  /**
    * Increment current path to a new path
    *
    * @returns {*}
    */
   incrementPath() {
-    this.currentPath = this.getNextPath(this.currentPath);
-  }
-
-  /**
-   * Increment that last part of the given path
-   *
-   * @param path
-   * @returns {*}
-   */
-  getNextPath(path) {
-    const pathValues = path.split('/');
-    const lastPart = pathValues[pathValues.length - 1];
-    let hardened = false;
-    if (lastPart.match('\'')) {
-      hardened = true;
-    }
-    const nextPath = (Number(lastPart.replace(/[^0-9]/g, '')) + 1).toString();
-    pathValues[pathValues.length - 1] = nextPath + (hardened ? '\'' : '');
-    return pathValues.join('/');
+    this.currentPath = Utils.getNextPath(this.currentPath);
   }
 
   /**
@@ -590,6 +605,7 @@ export const BAP_ID = class {
     this.rootAddress = identity.rootAddress;
     this.#previousPath = identity.previousPath;
     this.#currentPath = identity.currentPath;
+    this.#idSeed = identity.idSeed || '';
     this.identityAttributes = this.parseAttributes(identity.identityAttributes);
   }
 
@@ -606,6 +622,7 @@ export const BAP_ID = class {
       rootAddress: this.rootAddress,
       previousPath: this.#previousPath,
       currentPath: this.#currentPath,
+      idSeed: this.#idSeed,
       identityAttributes: this.getAttributes(),
     };
   }

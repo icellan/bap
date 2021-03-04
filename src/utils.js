@@ -64,4 +64,22 @@ export const Utils = {
 
     return signingPath;
   },
+
+  /**
+   * Increment that last part of the given path
+   *
+   * @param path
+   * @returns {*}
+   */
+  getNextPath(path) {
+    const pathValues = path.split('/');
+    const lastPart = pathValues[pathValues.length - 1];
+    let hardened = false;
+    if (lastPart.match('\'')) {
+      hardened = true;
+    }
+    const nextPath = (Number(lastPart.replace(/[^0-9]/g, '')) + 1).toString();
+    pathValues[pathValues.length - 1] = nextPath + (hardened ? '\'' : '');
+    return pathValues.join('/');
+  },
 };

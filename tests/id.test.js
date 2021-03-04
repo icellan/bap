@@ -47,6 +47,20 @@ describe('bap-id', () => {
     expect(identityKey).toBe('2cWvSXKfFQScCgDFssRPKvDLjNYx');
   });
 
+  test('new id with seeded keys', () => {
+    const userId = new BAP_ID(bsv.HDPrivateKey(HDPrivateKey), {}, 'test');
+    const rootAddress = userId.rootAddress;
+    const identityKey = userId.getIdentityKey();
+    expect(rootAddress).toBe('189oxMiD6wFA4nD38CkoWBKragxXUfw26J');
+    expect(identityKey).toBe('ffw3VszEVByph2DuHUiswEMNjRm');
+
+    const userId2 = new BAP_ID(bsv.HDPrivateKey(HDPrivateKey), {}, 'testing 123');
+    const rootAddress2 = userId2.rootAddress;
+    const identityKey2 = userId2.getIdentityKey();
+    expect(rootAddress2).toBe('18zrzzv2Nieve7QAj2AwGDcPYyBziz8vWk');
+    expect(identityKey2).toBe('2UKj9321g9pDExCjL7dPhXMtM326');
+  });
+
   test('set BAP_SERVER', () => {
     const bap = new BAP(HDPrivateKey);
     const id = bap.newId();
@@ -120,17 +134,6 @@ urn:bap:id:email:john.doe@example.com:2864fd138ab1e9ddaaea763c77a45898dac64a2622
     bapId.incrementPath();
     expect(bapId.previousPath).toBe(`${SIGNING_PATH_PREFIX}/0/0/3`);
     expect(bapId.currentPath).toBe(`${SIGNING_PATH_PREFIX}/0/0/4`);
-  });
-
-  test('getNextPath', () => {
-    const randomHDPrivateKey = bsv.HDPrivateKey.fromRandom();
-    const bapId = new BAP_ID(randomHDPrivateKey);
-
-    expect(bapId.getNextPath('/0/0/1')).toBe('/0/0/2');
-    expect(bapId.getNextPath('/0/2345/1')).toBe('/0/2345/2');
-    expect(bapId.getNextPath('/0\'/2345\'/1\'')).toBe('/0\'/2345\'/2\'');
-    expect(bapId.getNextPath('/5765/2345/2342')).toBe('/5765/2345/2343');
-    expect(bapId.getNextPath('/5765\'/2345\'/2342\'')).toBe('/5765\'/2345\'/2343\'');
   });
 
   test('signingPath', () => {

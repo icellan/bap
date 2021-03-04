@@ -29,6 +29,8 @@ export const BAP = class {
 
   #BAP_TOKEN = '';
 
+  #lastIdPath = '';
+
   constructor(HDPrivateKey, token = false) {
     if (!HDPrivateKey) {
       throw new Error('No HDPrivateKey given');
@@ -125,20 +127,21 @@ export const BAP = class {
    *
    * @param path
    * @param identityAttributes
+   * @param idSeed
    * @returns {*}
    */
-  newId(path = null, identityAttributes = {}) {
+  newId(path = null, identityAttributes = {}, idSeed = '') {
     if (!path) {
       // get next usable path for this key
       path = this.getNextValidPath();
     }
 
-    const newIdentity = new BAP_ID(this.#HDPrivateKey, identityAttributes);
+    const newIdentity = new BAP_ID(this.#HDPrivateKey, identityAttributes, idSeed);
     newIdentity.BAP_SERVER = this.#BAP_SERVER;
     newIdentity.BAP_TOKEN = this.#BAP_TOKEN;
 
     newIdentity.rootPath = path;
-    newIdentity.currentPath = newIdentity.getNextPath(path);
+    newIdentity.currentPath = Utils.getNextPath(path);
 
     const idKey = newIdentity.getIdentityKey();
     this.#ids[idKey] = newIdentity;
@@ -153,7 +156,10 @@ export const BAP = class {
    */
   getNextValidPath() {
     // prefer hardened paths
-    // TODO check whether this is taken
+    if (this.#lastIdPath) {
+      return Utils.getNextPath(this.#lastIdPath);
+    }
+
     return `/0'/${Object.keys(this.#ids).length}'/0'`;
   }
 
@@ -193,26 +199,36 @@ export const BAP = class {
    *
    * The ID information should NOT be stored together with the HD private key !
    *
-   * @param ids Array of ids that have been exported
+   * @param idData Array of ids that have been exported
    * @param encrypted Whether the data should be treated as being encrypted (default true)
    */
-  importIds(ids, encrypted = true) {
+  importIds(idData, encrypted = true) {
     if (encrypted) {
       // we first need to decrypt the ids array using ECIES
       const ecies = ECIES();
       const derivedChild = this.#HDPrivateKey.deriveChild(ENCRYPTION_PATH);
       ecies.privateKey(derivedChild.privateKey);
       const decrypted = ecies.decrypt(
-        Buffer.from(ids, Utils.isHex(ids) ? 'hex' : 'base64'),
+        Buffer.from(idData, Utils.isHex(idData) ? 'hex' : 'base64'),
       ).toString();
-      ids = JSON.parse(decrypted);
+      idData = JSON.parse(decrypted);
     }
 
-    ids.forEach((id) => {
+    let oldFormatImport = false;
+    if (!idData.hasOwnProperty('ids') && idData.hasOwnProperty('lastIdPath')) {
+      // old format id container
+      oldFormatImport = true;
+      idData = {
+        lastIdPath: '',
+        ids: idData,
+      };
+    }
+
+    idData.ids.forEach((id) => {
       if (!id.identityKey || !id.identityAttributes || !id.rootAddress) {
         throw new Error('ID cannot be imported as it is not complete');
       }
-      const importId = new BAP_ID(this.#HDPrivateKey);
+      const importId = new BAP_ID(this.#HDPrivateKey, {}, id.idSeed);
       importId.BAP_SERVER = this.#BAP_SERVER;
       importId.BAP_TOKEN = this.#BAP_TOKEN;
       importId.import(id);
@@ -220,7 +236,14 @@ export const BAP = class {
       this.checkIdBelongs(importId);
 
       this.#ids[importId.getIdentityKey()] = importId;
+
+      if (oldFormatImport) {
+        // overwrite with the last value on this array
+        idData.lastIdPath = importId.currentPath();
+      }
     });
+
+    this.#lastIdPath = idData.lastIdPath;
   }
 
   /**
@@ -232,21 +255,24 @@ export const BAP = class {
    * @returns {[]|*}
    */
   exportIds(encrypted = true) {
-    const ids = [];
+    const idData = {
+      lastIdPath: this.#lastIdPath,
+      ids: [],
+    };
 
     Object.keys(this.#ids)
       .forEach((key) => {
-        ids.push(this.#ids[key].export());
+        idData.ids.push(this.#ids[key].export());
       });
 
     if (encrypted) {
       const ecies = ECIES();
       const derivedChild = this.#HDPrivateKey.deriveChild(ENCRYPTION_PATH);
       ecies.publicKey(derivedChild.publicKey);
-      return ecies.encrypt(JSON.stringify(ids)).toString('base64');
+      return ecies.encrypt(JSON.stringify(idData)).toString('base64');
     }
 
-    return ids;
+    return idData;
   }
 
   /**
