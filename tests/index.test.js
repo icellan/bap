@@ -8,6 +8,7 @@ import { BAP_ID } from '../src/id';
 
 import { HDPrivateKey, HDPublicKey } from './data/keys';
 import fullId from './data/ids.json';
+import oldFullId from './data/old-ids.json';
 
 const testBAPInstance = function (bap) {
   // TODO ....
@@ -80,6 +81,18 @@ describe('bap', () => {
   test('import full ID', () => {
     const bap = new BAP(HDPrivateKey);
     bap.importIds(fullId, false);
+    testBAPInstance(bap);
+
+    expect(bap.listIds()).toStrictEqual([identityKey]);
+
+    const importedId = bap.getId(identityKey);
+    expect(importedId).toBeInstanceOf(BAP_ID);
+    expect(importedId.getIdentityKey()).toBe(identityKey);
+  });
+
+  test('import OLD full ID', () => {
+    const bap = new BAP(HDPrivateKey);
+    bap.importIds(oldFullId, false);
     testBAPInstance(bap);
 
     expect(bap.listIds()).toStrictEqual([identityKey]);

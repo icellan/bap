@@ -1,0 +1,25 @@
+[
+  {
+    "name": "Social media id",
+    "description": "Safe to share with social media companies",
+    "identityKey": "4a59332b7d81c4c68a6edcb1160f4683037a97286b97cc500b5881632e921849z",
+    "rootPath": "m/424150'/0'/0'/26562456/876543/0",
+    "rootAddress": "12Ne5DNJLtXzR5TFGrZvRwJP4rxsBovgHj",
+    "currentPath": "m/424150'/0'/0'/26562456/876543/345346",
+    "previousPath": "m/424150'/0'/0'/26562456/876543/345345",
+    "identityAttributes": {
+      "uniKey": {
+        "value": "042e65eedd59a4600919a985e5d74c4fb337059e03b17d6e270e149481fa3bc8",
+        "nonce": "ea88e989c4d7383634057a21cfc0c5b854399f4f1955efdafc9292edf340d06b"
+      },
+      "name": {
+        "value": "John Doe",
+        "nonce": "e2c6fb4063cc04af58935737eaffc938011dff546d47b7fbb18ed346f8c4d4fa"
+      },
+      "email": {
+        "value": "john.doe@example.com",
+        "nonce": "2864fd138ab1e9ddaaea763c77a45898dac64a26229f9f3d0f2280e4bfa915de"
+      }
+    }
+  }
+]

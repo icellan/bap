@@ -215,7 +215,7 @@ export const BAP = class {
     }
 
     let oldFormatImport = false;
-    if (!idData.hasOwnProperty('ids') && idData.hasOwnProperty('lastIdPath')) {
+    if (!idData.hasOwnProperty('ids')) {
       // old format id container
       oldFormatImport = true;
       idData = {
@@ -239,7 +239,7 @@ export const BAP = class {
 
       if (oldFormatImport) {
         // overwrite with the last value on this array
-        idData.lastIdPath = importId.currentPath();
+        idData.lastIdPath = importId.currentPath;
       }
     });
 
