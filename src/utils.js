@@ -66,6 +66,28 @@ export const Utils = {
   },
 
   /**
+   * Increment that second to last part from the given part, set the last part to 0
+   *
+   * @param path
+   * @returns {*}
+   */
+  getNextIdentityPath(path) {
+    const pathValues = path.split('/');
+    const secondToLastPart = pathValues[pathValues.length - 2];
+
+    let hardened = false;
+    if (secondToLastPart.match('\'')) {
+      hardened = true;
+    }
+
+    const nextPath = (Number(secondToLastPart.replace(/[^0-9]/g, '')) + 1).toString();
+    pathValues[pathValues.length - 2] = nextPath + (hardened ? '\'' : '');
+    pathValues[pathValues.length - 1] = '0' + (hardened ? '\'' : '');
+
+    return pathValues.join('/');
+  },
+
+  /**
    * Increment that last part of the given path
    *
    * @param path

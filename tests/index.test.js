@@ -265,7 +265,33 @@ describe('bap', () => {
     expect(verify.verified).toBe(true);
   });
 
-/*
+  test('lastIdPath', () => {
+    const fullBap = new BAP(HDPrivateKey);
+    fullBap.importIds(fullId, false);
+    expect(fullBap.lastIdPath).toBe('/26562456/876543/345346');
+
+    const newId = fullBap.newId();
+    const idKey = newId.getIdentityKey();
+    expect(fullBap.lastIdPath).toBe('/26562456/876544/0');
+
+    fullBap.removeId(idKey);
+    expect(fullBap.lastIdPath).toBe('/26562456/876544/0');
+
+    const newId2 = fullBap.newId();
+    const idKey2 = newId2.getIdentityKey();
+    expect(fullBap.lastIdPath).toBe('/26562456/876545/0');
+
+    fullBap.removeId(idKey2);
+    expect(fullBap.lastIdPath).toBe('/26562456/876545/0');
+
+    const newId3 = fullBap.newId();
+    expect(fullBap.lastIdPath).toBe('/26562456/876546/0');
+
+    const idKeys = fullBap.listIds();
+    expect(idKeys.length).toBe(2);
+  });
+
+  /*
   test('verifyChallengeSignature', () => {
     const privateKey = bsv.PrivateKey.fromRandom();
     const address = privateKey.publicKey.toAddress().toString();

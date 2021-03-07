@@ -43,6 +43,10 @@ export const BAP = class {
     }
   }
 
+  get lastIdPath() {
+    return this.#lastIdPath;
+  }
+
   /**
    * Get the public key of the given childPath, or of the current HDPrivateKey of childPath is empty
    *
@@ -145,8 +149,19 @@ export const BAP = class {
 
     const idKey = newIdentity.getIdentityKey();
     this.#ids[idKey] = newIdentity;
+    this.#lastIdPath = path;
 
     return this.#ids[idKey];
+  }
+
+  /**
+   * Remove identity
+   *
+   * @param idKey
+   * @returns {*}
+   */
+  removeId(idKey) {
+    delete this.#ids[idKey];
   }
 
   /**
@@ -157,7 +172,7 @@ export const BAP = class {
   getNextValidPath() {
     // prefer hardened paths
     if (this.#lastIdPath) {
-      return Utils.getNextPath(this.#lastIdPath);
+      return Utils.getNextIdentityPath(this.#lastIdPath);
     }
 
     return `/0'/${Object.keys(this.#ids).length}'/0'`;
