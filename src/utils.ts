@@ -1,4 +1,5 @@
 import bsv from 'bsv';
+import {PathPrefix} from "./interface";
 
 export const Utils = {
   /**
@@ -7,18 +8,18 @@ export const Utils = {
    * @param string
    * @returns {string}
    */
-  hexEncode(string) {
+  hexEncode(string: string) {
     return '0x' + Buffer.from(string).toString('hex');
   },
 
   /**
    * Helper function for encoding strings to hex
    *
-   * @param hexString
-   * @param encoding
+   * @param hexString string
+   * @param encoding BufferEncoding
    * @returns {string}
    */
-  hexDecode(hexString, encoding = 'utf8') {
+  hexDecode(hexString: string, encoding: BufferEncoding = 'utf8') {
     return Buffer.from(hexString.replace('0x', ''), 'hex').toString(encoding);
   },
 
@@ -34,10 +35,10 @@ export const Utils = {
   /**
    * Test whether the given string is hex
    *
-   * @param value
+   * @param value any
    * @returns {boolean}
    */
-  isHex(value) {
+  isHex(value: any) {
     if (typeof value !== 'string') {
       return false;
     }
@@ -51,12 +52,12 @@ export const Utils = {
    * @param hardened {boolean} Whether to return a hardened path
    * @returns {string}
    */
-  getSigningPathFromHex(hexString, hardened = true) {
+  getSigningPathFromHex(hexString: string, hardened = true) {
     // "m/0/0/1"
     let signingPath = 'm';
     const signingHex = hexString.match(/.{1,8}/g);
     const maxNumber = 2147483648 - 1; // 0x80000000
-    signingHex.forEach((hexNumber) => {
+    signingHex?.forEach((hexNumber) => {
       let number = Number('0x' + hexNumber);
       if (number > maxNumber) number -= maxNumber;
       signingPath += `/${number}${(hardened ? "'" : '')}`;
@@ -68,10 +69,10 @@ export const Utils = {
   /**
    * Increment that second to last part from the given part, set the last part to 0
    *
-   * @param path
+   * @param path string
    * @returns {*}
    */
-  getNextIdentityPath(path) {
+  getNextIdentityPath(path: string): PathPrefix {
     const pathValues = path.split('/');
     const secondToLastPart = pathValues[pathValues.length - 2];
 
@@ -84,16 +85,16 @@ export const Utils = {
     pathValues[pathValues.length - 2] = nextPath + (hardened ? '\'' : '');
     pathValues[pathValues.length - 1] = '0' + (hardened ? '\'' : '');
 
-    return pathValues.join('/');
+    return pathValues.join('/') as PathPrefix;
   },
 
   /**
    * Increment that last part of the given path
    *
-   * @param path
+   * @param path string
    * @returns {*}
    */
-  getNextPath(path) {
+  getNextPath(path: string) {
     const pathValues = path.split('/');
     const lastPart = pathValues[pathValues.length - 1];
     let hardened = false;

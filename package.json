@@ -1,6 +1,6 @@
 {
   "name": "bitcoin-bap",
-  "version": "1.1.2",
+  "version": "1.3.0",
   "description": "BAP npm module",
   "repository": {
     "type": "git",
@@ -8,53 +8,71 @@
   },
   "license": "Open BSV",
   "precommit": "test",
-  "main": "dist/index.js",
+  "main": "dist/typescript-npm-package.cjs.js",
+  "module": "dist/typescript-npm-package.esm.js",
+  "browser": "dist/typescript-npm-package.umd.js",
   "scripts": {
-    "clean": "rimraf dist/",
-    "build": "rimraf dist/ && babel src/ --presets minify --out-dir dist/",
+    "build": "rollup -c",
+    "build:types": "tsc -p ./tsconfig.json --outDir build --declaration true && api-extractor run",
+    "clean": "rimraf ./build ./dist ./docs",
+    "deploy": "yarn pub --access public",
+    "dev": "rollup -c -w",
+    "docs": "rimraf ./docs && jsdoc src -r -c jsdoc.json -d docs",
+    "prebuild:types": "rimraf ./build",
+    "predocs": "rimraf ./docs",
+    "pub": "yarn build && yarn publish",
     "lint": "eslint ./src",
     "lintfix": "eslint ./src --fix",
-    "testquiet": "./node_modules/.bin/jest --detectOpenHandles --forceExit --silent",
-    "testonly": "./node_modules/.bin/jest --collectCoverage --detectOpenHandles --forceExit",
-    "testwatch": "./node_modules/.bin/jest --watchAll --collectCoverage --logHeapUsage --detectOpenHandles",
-    "test": "npm run lint && npm run testonly",
-    "test-watch": "npm run testwatch",
+    "testquiet": "jest --detectOpenHandles --forceExit --silent",
+    "testonly": "jest --collectCoverage --detectOpenHandles --forceExit",
+    "testwatch": "jest --watchAll --collectCoverage --logHeapUsage --detectOpenHandles",
+    "test": "yarn lint && yarn testonly",
+    "test-watch": "yarn testwatch",
     "check": "./node_modules/.bin/npm-check -u",
-    "prepare": "npm run clean && npm run lint && npm run test && npm run build"
+    "prepare": "yarn clean && yarn lint && yarn test && yarn build"
   },
   "devDependencies": {
-    "@babel/cli": "^7.12.10",
-    "@babel/core": "^7.12.10",
-    "@babel/plugin-transform-runtime": "^7.12.10",
-    "@babel/polyfill": "^7.12.1",
-    "@babel/preset-env": "^7.12.11",
-    "@babel/register": "^7.12.10",
-    "babel-core": "^7.0.0-bridge.0",
-    "babel-eslint": "^10.1.0",
-    "babel-jest": "^26.6.3",
-    "babel-preset-minify": "^0.5.1",
-    "bsv": "^1.5.4",
-    "eslint": "^7.16.0",
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-runtime": "^7.19.1",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@rollup/plugin-babel": "^5.3.1",
+    "@rollup/plugin-commonjs": "^22.0.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^14.0.0",
+    "@rollup/plugin-typescript": "^8.3.1",
+    "@types/bsv": "github:chainbow/bsv-types",
+    "@types/jest": "^29.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.38.1",
+    "@typescript-eslint/parser": "^5.38.1",
+    "babel-jest": "^29.0.0",
+    "bsv": "^1.5.6",
+    "eslint": "^8.24.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1",
     "jest": "^26.6.3",
     "jest-cli": "^26.6.3",
+    "jest-fetch-mock": "^3.0.3",
     "jest-slow-test-reporter": "^1.0.0",
     "npm-check": "5.9.2",
     "pre-commit": "^1.2.2",
     "regenerator-runtime": "^0.13.7",
     "rimraf": "3.0.2",
-    "run-sequence": "2.2.1"
+    "rollup": "^2.70.0",
+    "rollup-plugin-dts": "^4.2.0",
+    "rollup-plugin-exclude-dependencies-from-bundle": "^1.1.22",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-polyfill-node": "^0.10.0",
+    "run-sequence": "2.2.1",
+    "ts-node": "^10.4.0",
+    "tslib": "^2.3.1",
+    "typedoc": "^0.23.1",
+    "typescript": "^4.6.2"
   },
   "dependencies": {
     "node-fetch": "^2.6.1"
   },
   "peerDependencies": {
-    "bsv": "^1.5.4"
-  },
-  "jest": {
-    "transform": {
-      "^.+\\.(mjs|jsx|js)$": "babel-jest"
-    }
+    "bsv": "^1.5.6"
   }
 }

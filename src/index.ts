@@ -1,5 +1,7 @@
 import bsv from 'bsv';
+// @ts-ignore
 import Message from 'bsv/message';
+// @ts-ignore
 import ECIES from 'bsv/ecies';
 import 'node-fetch';
 
@@ -12,6 +14,7 @@ import {
   BAP_BITCOM_ADDRESS_HEX,
   AIP_BITCOM_ADDRESS,
 } from './constants';
+import {Attestation, Identity, PathPrefix} from "./interface";
 
 /**
  * BAP class
@@ -21,20 +24,17 @@ import {
  * @param HDPrivateKey
  */
 export const BAP = class {
-  #HDPrivateKey = null;
-
-  #ids = {};
-
+  #HDPrivateKey;
+  #ids: { [key: string]: BAP_ID } = {};
   #BAP_SERVER = BAP_SERVER;
-
   #BAP_TOKEN = '';
-
   #lastIdPath = '';
 
-  constructor(HDPrivateKey, token = false) {
+  constructor(HDPrivateKey: string, token = '') {
     if (!HDPrivateKey) {
       throw new Error('No HDPrivateKey given');
     } else {
+      // @ts-ignore
       this.#HDPrivateKey = bsv.HDPrivateKey(HDPrivateKey);
     }
 
@@ -43,7 +43,7 @@ export const BAP = class {
     }
   }
 
-  get lastIdPath() {
+  get lastIdPath(): string {
     return this.#lastIdPath;
   }
 
@@ -53,7 +53,7 @@ export const BAP = class {
    * @param childPath Full derivation path for this child
    * @returns {*}
    */
-  getPublicKey(childPath = false) {
+  getPublicKey(childPath = ''): string {
     if (childPath) {
       return this.#HDPrivateKey.deriveChild(childPath).publicKey.toString();
     }
@@ -67,7 +67,7 @@ export const BAP = class {
    * @param childPath Full derivation path for this child
    * @returns {*}
    */
-  getHdPublicKey(childPath = false) {
+  getHdPublicKey(childPath = ''): string {
     if (childPath) {
       return this.#HDPrivateKey.deriveChild(childPath).hdPublicKey.toString();
     }
@@ -78,22 +78,24 @@ export const BAP = class {
   set BAP_SERVER(bapServer) {
     this.#BAP_SERVER = bapServer;
     Object.keys(this.#ids).forEach((key) => {
+      // @ts-ignore - does not recognize private fields that can be set
       this.#ids[key].BAP_SERVER = bapServer;
     });
   }
 
-  get BAP_SERVER() {
+  get BAP_SERVER(): string {
     return this.#BAP_SERVER;
   }
 
   set BAP_TOKEN(token) {
     this.#BAP_TOKEN = token;
     Object.keys(this.#ids).forEach((key) => {
+      // @ts-ignore - does not recognize private fields that can be set
       this.#ids[key].BAP_TOKEN = token;
     });
   }
 
-  get BAP_TOKEN() {
+  get BAP_TOKEN(): string {
     return this.#BAP_TOKEN;
   }
 
@@ -103,7 +105,7 @@ export const BAP = class {
    *
    * @param bapId BAP_ID instance
    */
-  checkIdBelongs(bapId) {
+  checkIdBelongs(bapId: BAP_ID): boolean {
     const derivedChild = this.#HDPrivateKey.deriveChild(bapId.rootPath);
     const checkRootAddress = derivedChild.publicKey.toAddress().toString();
     if (checkRootAddress !== bapId.rootAddress) {
@@ -118,7 +120,7 @@ export const BAP = class {
    *
    * @returns {string[]}
    */
-  listIds() {
+  listIds(): string[] {
     return Object.keys(this.#ids);
   }
 
@@ -134,7 +136,7 @@ export const BAP = class {
    * @param idSeed
    * @returns {*}
    */
-  newId(path = null, identityAttributes = {}, idSeed = '') {
+  newId(path = '', identityAttributes: any = {}, idSeed = ''): BAP_ID {
     if (!path) {
       // get next usable path for this key
       path = this.getNextValidPath();
@@ -160,7 +162,7 @@ export const BAP = class {
    * @param idKey
    * @returns {*}
    */
-  removeId(idKey) {
+  removeId(idKey: string): void {
     delete this.#ids[idKey];
   }
 
@@ -169,7 +171,7 @@ export const BAP = class {
    *
    * @returns {string}
    */
-  getNextValidPath() {
+  getNextValidPath(): PathPrefix {
     // prefer hardened paths
     if (this.#lastIdPath) {
       return Utils.getNextIdentityPath(this.#lastIdPath);
@@ -184,7 +186,7 @@ export const BAP = class {
    * @param identityKey
    * @returns {null}
    */
-  getId(identityKey) {
+  getId(identityKey: string): BAP_ID | null {
     return this.#ids[identityKey] || null;
   }
 
@@ -199,14 +201,9 @@ export const BAP = class {
    *
    * @param bapId
    */
-  setId(bapId) {
-    if (bapId instanceof BAP_ID) {
-      this.checkIdBelongs(bapId);
-
-      this.#ids[bapId.getIdentityKey()] = bapId;
-    } else {
-      throw new Error('id is not an instance of BAP_ID');
-    }
+  setId(bapId: BAP_ID): void {
+    this.checkIdBelongs(bapId);
+    this.#ids[bapId.getIdentityKey()] = bapId;
   }
 
   /**
@@ -217,7 +214,7 @@ export const BAP = class {
    * @param idData Array of ids that have been exported
    * @param encrypted Whether the data should be treated as being encrypted (default true)
    */
-  importIds(idData, encrypted = true) {
+  importIds(idData: any, encrypted = true): void {
     if (encrypted) {
       // we first need to decrypt the ids array using ECIES
       const ecies = ECIES();
@@ -226,7 +223,7 @@ export const BAP = class {
       const decrypted = ecies.decrypt(
         Buffer.from(idData, Utils.isHex(idData) ? 'hex' : 'base64'),
       ).toString();
-      idData = JSON.parse(decrypted);
+      idData = JSON.parse(decrypted) as Identity[];
     }
 
     let oldFormatImport = false;
@@ -239,7 +236,7 @@ export const BAP = class {
       };
     }
 
-    idData.ids.forEach((id) => {
+    idData.ids.forEach((id: Identity) => {
       if (!id.identityKey || !id.identityAttributes || !id.rootAddress) {
         throw new Error('ID cannot be imported as it is not complete');
       }
@@ -269,10 +266,10 @@ export const BAP = class {
    * @param encrypted Whether the data should be encrypted (default true)
    * @returns {[]|*}
    */
-  exportIds(encrypted = true) {
+  exportIds(encrypted = true): any {
     const idData = {
       lastIdPath: this.#lastIdPath,
-      ids: [],
+      ids: [] as Identity[],
     };
 
     Object.keys(this.#ids)
@@ -296,7 +293,7 @@ export const BAP = class {
    * @param string
    * @returns {string}
    */
-  encrypt(string) {
+  encrypt(string: string): string {
     const ecies = ECIES();
     const derivedChild = this.#HDPrivateKey.deriveChild(ENCRYPTION_PATH);
     ecies.publicKey(derivedChild.publicKey);
@@ -309,7 +306,7 @@ export const BAP = class {
    * @param string
    * @returns {string}
    */
-  decrypt(string) {
+  decrypt(string: string): string {
     const ecies = ECIES();
     const derivedChild = this.#HDPrivateKey.deriveChild(ENCRYPTION_PATH);
     ecies.privateKey(derivedChild.privateKey);
@@ -325,9 +322,9 @@ export const BAP = class {
    * @param dataString Optional data string that will be appended to the BAP attestation
    * @returns {string[]}
    */
-  signAttestationWithAIP(attestationHash, identityKey, counter = 0, dataString = '') {
+  signAttestationWithAIP(attestationHash: string, identityKey: string, counter = 0, dataString = '') {
     const id = this.getId(identityKey);
-    if (!id || !(id instanceof BAP_ID)) {
+    if (!id) {
       throw new Error('Could not find identity to attest with');
     }
 
@@ -362,7 +359,7 @@ export const BAP = class {
    * @param tx Array of hex values for the OP_RETURN values
    * @returns {{}}
    */
-  verifyAttestationWithAIP(tx) {
+  verifyAttestationWithAIP(tx: string[]): Attestation {
     if (
       !Array.isArray(tx)
       || tx[0] !== '0x6a'
@@ -372,7 +369,7 @@ export const BAP = class {
     }
 
     const dataOffset = tx[7] === '0x44415441' ? 5 : 0; // DATA
-    const attestation = {
+    const attestation: Attestation = {
       type: Utils.hexDecode(tx[2]),
       hash: Utils.hexDecode(tx[3]),
       sequence: Utils.hexDecode(tx[4]),
@@ -416,13 +413,19 @@ export const BAP = class {
    * @param dataString Optional data string that will be appended to the BAP attestation
    * @returns {[string]}
    */
-  createAttestationTransaction(attestationHash, counter, address, signature, dataString = '') {
+  createAttestationTransaction(
+      attestationHash: string,
+      counter: number,
+      address: string,
+      signature: string,
+      dataString = '',
+  ): string[] {
     const transaction = ['0x6a', Utils.hexEncode(BAP_BITCOM_ADDRESS)];
     transaction.push(Utils.hexEncode('ATTEST'));
     transaction.push(Utils.hexEncode(attestationHash));
     transaction.push(Utils.hexEncode(`${counter}`));
     transaction.push('0x7c'); // |
-    if (dataString && typeof dataString === 'string') {
+    if (dataString) {
       // data should be a string, either encrypted or stringified JSON if applicable
       transaction.push(Utils.hexEncode(BAP_BITCOM_ADDRESS));
       transaction.push(Utils.hexEncode('DATA'));
@@ -446,7 +449,7 @@ export const BAP = class {
    * @param dataString Optional data string
    * @returns {Buffer}
    */
-  getAttestationBuffer(attestationHash, counter = 0, dataString = '') {
+  getAttestationBuffer(attestationHash: string, counter = 0, dataString = ''): Buffer {
     // re-create how AIP creates the buffer to sign
     let dataStringBuffer = Buffer.from('');
     if (dataString) {
@@ -475,8 +478,10 @@ export const BAP = class {
    * @param message Buffer or utf-8 string
    * @param address Bitcoin address of signee
    * @param signature Signature base64 string
+   *
+   * @return boolean
    */
-  verifySignature(message, address, signature) {
+  verifySignature(message: string | Buffer, address: string, signature: string): boolean {
     // check the signature against the challenge
     const messageBuffer = Buffer.isBuffer(message) ? message : Buffer.from(message);
     return Message.verify(
@@ -494,9 +499,15 @@ export const BAP = class {
    * @param address
    * @param challenge
    * @param signature
+   *
    * @returns {Promise<boolean|*>}
    */
-  async verifyChallengeSignature(idKey, address, challenge, signature) {
+  async verifyChallengeSignature(
+      idKey: string,
+      address: string,
+      challenge: string,
+      signature: string,
+  ): Promise<boolean> {
     // first we test locally before sending to server
     if (this.verifySignature(challenge, address, signature)) {
       const result = await this.getApiData('/attestation/valid', {
@@ -517,7 +528,7 @@ export const BAP = class {
    * @param tx
    * @returns {Promise<boolean|*>}
    */
-  async isValidAttestationTransaction(tx) {
+  async isValidAttestationTransaction(tx: string[]): Promise<any> {
     // first we test locally before sending to server
     if (this.verifyAttestationWithAIP(tx)) {
       return this.getApiData('/attestation/valid', {
@@ -534,7 +545,7 @@ export const BAP = class {
    * @param address
    * @returns {Promise<*>}
    */
-  async getIdentityFromAddress(address) {
+  async getIdentityFromAddress(address: string): Promise<any> {
     return this.getApiData('/identity/from-address', {
       address,
     });
@@ -546,7 +557,7 @@ export const BAP = class {
    * @param idKey
    * @returns {Promise<*>}
    */
-  async getIdentity(idKey) {
+  async getIdentity(idKey: string): Promise<any> {
     return this.getApiData('/identity', {
       idKey,
     });
@@ -557,7 +568,7 @@ export const BAP = class {
    *
    * @param attestationHash
    */
-  async getAttestationsForHash(attestationHash) {
+  async getAttestationsForHash(attestationHash: string): Promise<any> {
     // get all BAP ATTEST records for the given attestationHash
     return this.getApiData('/attestations', {
       hash: attestationHash,
@@ -571,7 +582,7 @@ export const BAP = class {
    * @param apiData
    * @returns {Promise<any>}
    */
-  async getApiData(apiUrl, apiData) {
+  async getApiData(apiUrl: string, apiData: any): Promise<any> {
     const url = `${this.#BAP_SERVER}${apiUrl}`;
     const response = await fetch(url, {
       method: 'post',

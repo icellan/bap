@@ -1,5 +1,7 @@
 import bsv from 'bsv';
+// @ts-ignore
 import ECIES from 'bsv/ecies';
+// @ts-ignore
 import Message from 'bsv/message';
 import {
   MAX_INT,
@@ -9,6 +11,7 @@ import {
   AIP_BITCOM_ADDRESS, ENCRYPTION_PATH,
 } from './constants';
 import { Utils } from './utils';
+import {Identity} from "./interface";
 
 /**
  * BAP_ID class
@@ -17,22 +20,23 @@ import { Utils } from './utils';
  *
  * @type {BAP_ID}
  */
-export const BAP_ID = class {
-  #HDPrivateKey = null;
-
-  #BAP_SERVER = BAP_SERVER;
-
+class BAP_ID {
+  #HDPrivateKey: bsv.HDPrivateKey;
+  #BAP_SERVER: string = BAP_SERVER;
   #BAP_TOKEN = '';
+  #rootPath: string;
+  #previousPath: string;
+  #currentPath: string;
+  #idSeed: string;
 
-  #rootPath;
+  idName: string;
+  description: string;
 
-  #previousPath;
+  rootAddress: string;
+  identityKey: string;
+  identityAttributes: { [key: string]: any }
 
-  #currentPath;
-
-  #idSeed;
-
-  constructor(HDPrivateKey, identityAttributes = {}, idSeed = '') {
+  constructor(HDPrivateKey: bsv.HDPrivateKey, identityAttributes: { [key: string]: any } = {}, idSeed = '') {
     this.#idSeed = idSeed;
     if (idSeed) {
       // create a new HDPrivateKey based on the seed
@@ -43,7 +47,7 @@ export const BAP_ID = class {
       this.#HDPrivateKey = HDPrivateKey;
     }
 
-    this.name = 'ID 1';
+    this.idName = 'ID 1';
     this.description = '';
 
     this.#rootPath = `${SIGNING_PATH_PREFIX}/0/0/0`;
@@ -63,7 +67,7 @@ export const BAP_ID = class {
     this.#BAP_SERVER = bapServer;
   }
 
-  get BAP_SERVER() {
+  get BAP_SERVER(): string {
     return this.#BAP_SERVER;
   }
 
@@ -71,12 +75,13 @@ export const BAP_ID = class {
     this.#BAP_TOKEN = token;
   }
 
-  get BAP_TOKEN() {
+  get BAP_TOKEN(): string {
     return this.#BAP_TOKEN;
   }
 
-  deriveIdentityKey(address) {
+  deriveIdentityKey(address: string): string {
     const rootAddressHash = bsv.crypto.Hash.sha256(Buffer.from(address));
+    // @ts-ignore
     return bsv.encoding.Base58(bsv.crypto.Hash.ripemd160(rootAddressHash)).toString();
   }
 
@@ -86,7 +91,7 @@ export const BAP_ID = class {
    * @param identityAttributes
    * @returns {{}}
    */
-  parseAttributes(identityAttributes) {
+  parseAttributes(identityAttributes: { [key: string]: any } | string): { [key: string]: any } {
     if (typeof identityAttributes === 'string') {
       return this.parseStringUrns(identityAttributes);
     }
@@ -112,8 +117,8 @@ export const BAP_ID = class {
    *
    * @param urnIdentityAttributes
    */
-  parseStringUrns(urnIdentityAttributes) {
-    const identityAttributes = {};
+  parseStringUrns(urnIdentityAttributes: string): { [key: string]: any } {
+    const identityAttributes: { [key: string]: any } = {};
     urnIdentityAttributes.replace(/^\s+/g, '').replace(/\r/gm, '')
       .split('\n')
       .forEach((line) => {
@@ -136,7 +141,7 @@ export const BAP_ID = class {
    *
    * @returns {*|string}
    */
-  getIdentityKey() {
+  getIdentityKey(): string {
     return this.identityKey;
   }
 
@@ -145,7 +150,7 @@ export const BAP_ID = class {
    *
    * @returns {*}
    */
-  getAttributes() {
+  getAttributes(): { [key: string]: any } {
     return this.identityAttributes;
   }
 
@@ -155,7 +160,7 @@ export const BAP_ID = class {
    * @param attributeName
    * @returns {{}|null}
    */
-  getAttribute(attributeName) {
+  getAttribute(attributeName: string): any {
     if (this.identityAttributes.hasOwnProperty(attributeName)) {
       return this.identityAttributes[attributeName];
     }
@@ -168,11 +173,11 @@ export const BAP_ID = class {
    *
    * If an empty value ('' || null || false) is given, the attribute is removed from the ID
    *
-   * @param attributeName
-   * @param attributeValue
+   * @param attributeName string
+   * @param attributeValue any
    * @returns {{}|null}
    */
-  setAttribute(attributeName, attributeValue) {
+  setAttribute(attributeName: string, attributeValue: any): void {
     if (attributeValue) {
       if (this.identityAttributes.hasOwnProperty(attributeName)) {
         this.identityAttributes[attributeName].value = attributeValue;
@@ -188,7 +193,7 @@ export const BAP_ID = class {
    * @param attributeName
    * @returns {{}|null}
    */
-  unsetAttribute(attributeName) {
+  unsetAttribute(attributeName: string): void {
     delete this.identityAttributes[attributeName];
   }
 
@@ -197,7 +202,7 @@ export const BAP_ID = class {
    *
    * @returns {string}
    */
-  getAttributeUrns() {
+  getAttributeUrns(): string {
     let urns = '';
     Object.keys(this.identityAttributes)
       .forEach((key) => {
@@ -216,7 +221,7 @@ export const BAP_ID = class {
    * @param attributeName
    * @returns {string|null}
    */
-  getAttributeUrn(attributeName) {
+  getAttributeUrn(attributeName: string) {
     const attribute = this.identityAttributes[attributeName];
     if (attribute) {
       return `urn:bap:id:${attributeName}:${attribute.value}:${attribute.nonce}`;
@@ -232,7 +237,7 @@ export const BAP_ID = class {
    * @param value
    * @param nonce
    */
-  addAttribute(attributeName, value, nonce = false) {
+  addAttribute(attributeName: string, value: any, nonce = ''): void {
     if (!nonce) {
       nonce = Utils.getRandomString();
     }
@@ -250,28 +255,34 @@ export const BAP_ID = class {
    * @param path The second path of the signing path in the format [0-9]{0,9}/[0-9]{0,9}/[0-9]{0,9}
    */
   set rootPath(path) {
-    if (path.split('/').length < 5) {
-      path = `${SIGNING_PATH_PREFIX}${path}`;
+    if (this.#HDPrivateKey) {
+      if (path.split('/').length < 5) {
+        path = `${SIGNING_PATH_PREFIX}${path}`;
+      }
+
+      if (!this.validatePath(path)) {
+        throw new Error('invalid signing path given ' + path);
+      }
+
+      this.#rootPath = path;
+
+      const derivedChild = this.#HDPrivateKey.deriveChild(path);
+      this.rootAddress = derivedChild.publicKey.toAddress().toString();
+      // Identity keys should be derivatives of the root address - this allows checking
+      // of the creation transaction
+      this.identityKey = this.deriveIdentityKey(this.rootAddress);
+
+      // we also set this previousPath / currentPath to the root as we seem to be (re)setting this ID
+      this.#previousPath = path;
+      this.#currentPath = path;
     }
-
-    if (!this.validatePath(path)) {
-      throw new Error('invalid signing path given ' + path);
-    }
-
-    this.#rootPath = path;
-
-    const derivedChild = this.#HDPrivateKey.deriveChild(path);
-    this.rootAddress = derivedChild.publicKey.toAddress().toString();
-    // Identity keys should be derivatives of the root address - this allows checking
-    // of the creation transaction
-    this.identityKey = this.deriveIdentityKey(this.rootAddress);
-
-    // we also set this previousPath / currentPath to the root as we seem to be (re)setting this ID
-    this.#previousPath = path;
-    this.#currentPath = path;
   }
 
-  get rootPath() {
+  get rootPath(): string {
+    return this.#rootPath;
+  }
+
+  getRootPath(): string {
     return this.#rootPath;
   }
 
@@ -294,11 +305,11 @@ export const BAP_ID = class {
     this.#currentPath = path;
   }
 
-  get currentPath() {
+  get currentPath(): string {
     return this.#currentPath;
   }
 
-  get previousPath() {
+  get previousPath(): string {
     return this.#previousPath;
   }
 
@@ -307,7 +318,7 @@ export const BAP_ID = class {
    * an attacker to steal the identites when the root key is compromised. This does however require
    * the seeds to be stored at all times. If the seed is lost, the identity will not be recoverable.
    */
-  get idSeed() {
+  get idSeed(): string {
     return this.#idSeed;
   }
 
@@ -316,7 +327,7 @@ export const BAP_ID = class {
    *
    * @returns {*}
    */
-  incrementPath() {
+  incrementPath(): void {
     this.currentPath = Utils.getNextPath(this.currentPath);
   }
 
@@ -327,7 +338,7 @@ export const BAP_ID = class {
    * @param path The last part of the signing path (example "/0/0/1")
    * @returns {boolean}
    */
-  validatePath(path) {
+  validatePath(path: string) {
     /* eslint-disable max-len */
     if (path.match(/\/[0-9]{1,10}'?\/[0-9]{1,10}'?\/[0-9]{1,10}'?\/[0-9]{1,10}'?\/[0-9]{1,10}'?\/[0-9]{1,10}'?/)) {
       const pathValues = path.split('/');
@@ -360,7 +371,7 @@ export const BAP_ID = class {
    *
    * @returns {[]}
    */
-  getIdTransaction(previousPath = false) {
+  getIdTransaction(previousPath = '') {
     if (this.#currentPath === this.#rootPath) {
       throw new Error('Current path equals rootPath. ID was probably not initialized properly');
     }
@@ -383,7 +394,7 @@ export const BAP_ID = class {
    * @param path
    * @returns {*}
    */
-  getAddress(path) {
+  getAddress(path: string): string {
     const derivedChild = this.#HDPrivateKey.deriveChild(path);
     return derivedChild.privateKey.publicKey.toAddress().toString();
   }
@@ -393,24 +404,26 @@ export const BAP_ID = class {
    *
    * @returns {*}
    */
-  getCurrentAddress() {
+  getCurrentAddress(): string {
     return this.getAddress(this.#currentPath);
   }
 
   /**
    * Get the public key for encrypting data for this identity
    */
-  getEncryptionPublicKey() {
+  getEncryptionPublicKey(): string {
     const HDPrivateKey = this.#HDPrivateKey.deriveChild(this.#rootPath);
     const encryptionKey = HDPrivateKey.deriveChild(ENCRYPTION_PATH).privateKey;
+    // @ts-ignore
     return encryptionKey.publicKey.toString('hex');
   }
 
   /**
    * Encrypt the given string data with the identity encryption key
    * @param stringData
+   * @return string Base64
    */
-  encrypt(stringData) {
+  encrypt(stringData: string): string {
     const publicKey = bsv.PublicKey.fromHex(this.getEncryptionPublicKey());
     const ecies = new ECIES();
     ecies.publicKey(publicKey);
@@ -421,7 +434,7 @@ export const BAP_ID = class {
    * Decrypt the given ciphertext with the identity encryption key
    * @param ciphertext
    */
-  decrypt(ciphertext) {
+  decrypt(ciphertext: string): string {
     const HDPrivateKey = this.#HDPrivateKey.deriveChild(this.#rootPath);
     const encryptionKey = HDPrivateKey.deriveChild(ENCRYPTION_PATH).privateKey;
     const ecies = new ECIES();
@@ -435,7 +448,7 @@ export const BAP_ID = class {
    * @param urn
    * @returns {string}
    */
-  getAttestation(urn) {
+  getAttestation(urn: string) {
     const urnHash = bsv.crypto.Hash.sha256(Buffer.from(urn));
     return `bap:attest:${urnHash.toString('hex')}:${this.getIdentityKey()}`;
   }
@@ -446,7 +459,7 @@ export const BAP_ID = class {
    * @param attribute Attribute name (name, email etc.)
    * @returns {string}
    */
-  getAttestationHash(attribute) {
+  getAttestationHash(attribute: string) {
     const urn = this.getAttributeUrn(attribute);
     if (!urn) return null;
 
@@ -463,7 +476,7 @@ export const BAP_ID = class {
    * @param signingPath
    * @returns {{address, signature}}
    */
-  signMessage(message, signingPath = false) {
+  signMessage(message: string | Buffer, signingPath = '') {
     if (!(message instanceof Buffer)) {
       message = Buffer.from(message);
     }
@@ -488,7 +501,7 @@ export const BAP_ID = class {
    * @param message
    * @param seed {string} String seed that will be used to generate a path
    */
-  signMessageWithSeed(message, seed) {
+  signMessageWithSeed(message: string, seed: string): { address: string, signature: string } {
     const pathHex = bsv.crypto.Hash.sha256(Buffer.from(seed)).toString('hex');
     const path = Utils.getSigningPathFromHex(pathHex);
 
@@ -507,7 +520,7 @@ export const BAP_ID = class {
    * @param outputType {string}
    * @return {[]}
    */
-  signOpReturnWithAIP(opReturn, signingPath = false, outputType = 'hex') {
+  signOpReturnWithAIP(opReturn: string[], signingPath = '', outputType: BufferEncoding = 'hex'): string[] {
     const aipMessageBuffer = this.getAIPMessageBuffer(opReturn);
     const { address, signature } = this.signMessage(aipMessageBuffer, signingPath);
 
@@ -525,7 +538,7 @@ export const BAP_ID = class {
    * @param opReturn
    * @returns {Buffer}
    */
-  getAIPMessageBuffer(opReturn) {
+  getAIPMessageBuffer(opReturn: string[]): Buffer {
     const buffers = [];
     if (opReturn[0].replace('0x', '') !== '6a') {
       // include OP_RETURN in constructing the signature buffer
@@ -543,7 +556,7 @@ export const BAP_ID = class {
   /**
    * Get all signing keys for this identity
    */
-  async getIdSigningKeys() {
+  async getIdSigningKeys(): Promise<any> {
     const signingKeys = await this.getApiData('/signing-keys', {
       idKey: this.identityKey,
     });
@@ -557,7 +570,7 @@ export const BAP_ID = class {
    *
    * @param attribute
    */
-  async getAttributeAttestations(attribute) {
+  async getAttributeAttestations(attribute: string): Promise<any> {
     // This function needs to make a call to a BAP server to get all the attestations for this
     // identity for the given attribute
     const attestationHash = this.getAttestationHash(attribute);
@@ -578,7 +591,7 @@ export const BAP_ID = class {
    * @param apiData
    * @returns {Promise<any>}
    */
-  async getApiData(apiUrl, apiData) {
+  async getApiData(apiUrl: string, apiData: any): Promise<any> {
     const url = `${this.#BAP_SERVER}${apiUrl}`;
     const response = await fetch(url, {
       method: 'post',
@@ -597,8 +610,8 @@ export const BAP_ID = class {
    *
    * @param identity{{}}
    */
-  import(identity) {
-    this.name = identity.name;
+  import(identity: Identity): void {
+    this.idName = identity.name;
     this.description = identity.description || '';
     this.identityKey = identity.identityKey;
     this.#rootPath = identity.rootPath;
@@ -613,9 +626,9 @@ export const BAP_ID = class {
    * Export this identity to a JSON object
    * @returns {{}}
    */
-  export() {
+  export(): Identity {
     return {
-      name: this.name,
+      name: this.idName,
       description: this.description,
       identityKey: this.identityKey,
       rootPath: this.#rootPath,
@@ -624,6 +637,11 @@ export const BAP_ID = class {
       currentPath: this.#currentPath,
       idSeed: this.#idSeed,
       identityAttributes: this.getAttributes(),
+      lastIdPath: ''
     };
   }
-};
+}
+
+export {
+  BAP_ID,
+}
