@@ -419,27 +419,94 @@ class BAP_ID {
   }
 
   /**
+   * Get the public key for encrypting data for this identity, using a seed for the encryption
+   */
+  getEncryptionPublicKeyWithSeed(seed: string): string {
+    const encryptionKey = this.getEncryptionPrivateKeyWithSeed(seed);
+    // @ts-ignore
+    return encryptionKey.publicKey.toString('hex');
+  }
+
+  /**
    * Encrypt the given string data with the identity encryption key
    * @param stringData
+   * @param counterPartyPublicKey Optional public key of the counterparty
    * @return string Base64
    */
-  encrypt(stringData: string): string {
-    const publicKey = bsv.PublicKey.fromHex(this.getEncryptionPublicKey());
+  encrypt(stringData: string, counterPartyPublicKey?: string): string {
+    const HDPrivateKey = this.#HDPrivateKey.deriveChild(this.#rootPath);
+    const encryptionKey = HDPrivateKey.deriveChild(ENCRYPTION_PATH).privateKey;
+    const publicKey = encryptionKey.publicKey;
+
     const ecies = new ECIES();
-    ecies.publicKey(publicKey);
+    if (counterPartyPublicKey) {
+      ecies.privateKey(encryptionKey)
+      ecies.publicKey(counterPartyPublicKey);
+    } else {
+      ecies.publicKey(publicKey);
+    }
     return ecies.encrypt(stringData).toString('base64');
   }
 
   /**
    * Decrypt the given ciphertext with the identity encryption key
    * @param ciphertext
+   * @param counterPartyPublicKey Optional public key of the counterparty
    */
-  decrypt(ciphertext: string): string {
+  decrypt(ciphertext: string, counterPartyPublicKey?: string): string {
     const HDPrivateKey = this.#HDPrivateKey.deriveChild(this.#rootPath);
     const encryptionKey = HDPrivateKey.deriveChild(ENCRYPTION_PATH).privateKey;
     const ecies = new ECIES();
     ecies.privateKey(encryptionKey);
+    if (counterPartyPublicKey) {
+      ecies.publicKey(counterPartyPublicKey);
+    }
     return ecies.decrypt(Buffer.from(ciphertext, 'base64')).toString();
+  }
+
+  /**
+   * Encrypt the given string data with the identity encryption key
+   * @param stringData
+   * @param seed String seed
+   * @param counterPartyPublicKey Optional public key of the counterparty
+   * @return string Base64
+   */
+  encryptWithSeed(stringData: string, seed: string, counterPartyPublicKey?: string): string {
+    const encryptionKey = this.getEncryptionPrivateKeyWithSeed(seed);
+    const publicKey = encryptionKey.publicKey;
+
+    const ecies = new ECIES();
+    if (counterPartyPublicKey) {
+      ecies.privateKey(encryptionKey);
+      ecies.publicKey(counterPartyPublicKey);
+    } else {
+      ecies.publicKey(publicKey);
+    }
+    return ecies.encrypt(stringData).toString('base64');
+  }
+
+  /**
+   * Decrypt the given ciphertext with the identity encryption key
+   * @param ciphertext
+   * @param seed String seed
+   * @param counterPartyPublicKey Public key of the counterparty
+   */
+  decryptWithSeed(ciphertext: string, seed: string, counterPartyPublicKey?: string): string {
+    const encryptionKey = this.getEncryptionPrivateKeyWithSeed(seed);
+    const ecies = new ECIES();
+    ecies.privateKey(encryptionKey);
+    if (counterPartyPublicKey) {
+      ecies.publicKey(counterPartyPublicKey);
+    }
+    return ecies.decrypt(Buffer.from(ciphertext, 'base64')).toString();
+  }
+
+  private getEncryptionPrivateKeyWithSeed(seed: string) {
+    const pathHex = bsv.crypto.Hash.sha256(Buffer.from(seed)).toString('hex');
+    const path = Utils.getSigningPathFromHex(pathHex);
+
+    const HDPrivateKey = this.#HDPrivateKey.deriveChild(this.#rootPath);
+    return HDPrivateKey.deriveChild(path).privateKey;
   }
 
   /**

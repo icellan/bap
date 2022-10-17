@@ -177,6 +177,15 @@ urn:bap:id:email:john.doe@example.com:2864fd138ab1e9ddaaea763c77a45898dac64a2622
     expect(typeof tx[8]).toBe('string');
   });
 
+  test('encryption public keys', () => {
+    const bapId = bap.newId(false, identityAttributes);
+    const pubKey = bapId.getEncryptionPublicKey();
+    expect(pubKey).toBe('02a257adfbba04a25a7c37600209a0926aa264428b2d3d2b17fa97cf9c31b87cdf');
+
+    const pubKeySeed = bapId.getEncryptionPublicKeyWithSeed('test-seed');
+    expect(pubKeySeed).toBe('0344786ed9e861b40b1157e841d6f0f7667548f03adff2709ebd74061068f8376a');
+  });
+
   test('encryption', () => {
     const bapId = bap.newId(false, identityAttributes);
     const pubKey = bapId.getEncryptionPublicKey();
@@ -188,6 +197,55 @@ urn:bap:id:email:john.doe@example.com:2864fd138ab1e9ddaaea763c77a45898dac64a2622
     expect(testData === ciphertext).toBe(false);
 
     const decrypted = bapId.decrypt(ciphertext);
+    expect(testData === decrypted).toBe(true);
+  });
+
+  test('encryption with counterparty', () => {
+    const bapId = bap.newId(false, identityAttributes);
+    const pubKey = bapId.getEncryptionPublicKey();
+    expect(pubKey).toBe('02a257adfbba04a25a7c37600209a0926aa264428b2d3d2b17fa97cf9c31b87cdf');
+
+    const counterPartyKey = bsv.PrivateKey.fromRandom().publicKey;
+
+    const testData = 'This is a test we are going to encrypt for the counterparty';
+    const ciphertext = bapId.encrypt(testData, counterPartyKey);
+    expect(typeof ciphertext).toBe('string');
+    expect(testData === ciphertext).toBe(false);
+
+    const decrypted = bapId.decrypt(ciphertext, counterPartyKey);
+    expect(testData === decrypted).toBe(true);
+  });
+
+  test('encryption with seed', () => {
+    const bapId = bap.newId(false, identityAttributes);
+    const pubKey = bapId.getEncryptionPublicKey();
+    expect(pubKey).toBe('02a257adfbba04a25a7c37600209a0926aa264428b2d3d2b17fa97cf9c31b87cdf');
+
+    const seed = 'test-seed';
+
+    const testData = 'This is a test we are going to encrypt';
+    const ciphertext = bapId.encryptWithSeed(testData, seed);
+    expect(typeof ciphertext).toBe('string');
+    expect(testData === ciphertext).toBe(false);
+
+    const decrypted = bapId.decryptWithSeed(ciphertext, seed);
+    expect(testData === decrypted).toBe(true);
+  });
+
+  test('encryption with seed with counterparty', () => {
+    const bapId = bap.newId(false, identityAttributes);
+    const pubKey = bapId.getEncryptionPublicKey();
+    expect(pubKey).toBe('02a257adfbba04a25a7c37600209a0926aa264428b2d3d2b17fa97cf9c31b87cdf');
+
+    const seed = 'test-seed';
+    const counterPartyKey = bsv.PrivateKey.fromRandom().publicKey;
+
+    const testData = 'This is a test we are going to encrypt';
+    const ciphertext = bapId.encryptWithSeed(testData, seed, counterPartyKey);
+    expect(typeof ciphertext).toBe('string');
+    expect(testData === ciphertext).toBe(false);
+
+    const decrypted = bapId.decryptWithSeed(ciphertext, seed, counterPartyKey);
     expect(testData === decrypted).toBe(true);
   });
 });
